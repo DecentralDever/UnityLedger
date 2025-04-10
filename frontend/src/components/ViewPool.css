@@ -1,0 +1,16 @@
+.view-pool-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .pool-details,
+  .pool-members,
+  .payout-order,
+  .pool-actions {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+  }
+  

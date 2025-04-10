@@ -1,0 +1,79 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f7fa; /* Subtle background to blend with the logo colors */
+  color: #212529;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+}
+
+/* HEADER */
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.layout-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.layout-logo {
+  height: 40px;
+  width: 40px;
+  object-fit: cover;
+}
+
+.layout-brand {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4f46e5; /* Use a color from your logo for brand text */
+}
+
+.layout-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: #212529;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.nav-link:hover {
+  background-color: #e2e8f0;
+  border-radius: 4px;
+}
+
+.layout-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* MAIN */
+.layout-main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* FOOTER */
+.layout-footer {
+  background-color: #ffffff;
+  text-align: center;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+  border-top: 1px solid #dee2e6;
+}
