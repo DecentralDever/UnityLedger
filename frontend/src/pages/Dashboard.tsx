@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
                 <span className="text-indigo-600 dark:text-indigo-400 mx-1">
                   {poolCount || 0}
                 </span>{" "}
-                Available Pools
+                Pools
               </span>
             )}
           </h2>
