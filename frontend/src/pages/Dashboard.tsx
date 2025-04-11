@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useUnityLedgerContract } from "../services/contract";
 import { useWallet } from "../context/WalletProvider";
@@ -32,8 +32,8 @@ interface PoolDetails {
   lastPayoutTime: bigint;
   isActive: boolean;
   poolType?: string; // Pool Reason
-  fee?: bigint;     // APY (%) stored as a whole number
-  joined?: boolean; // true if the connected account is a member
+  fee?: bigint;      // APY (%) stored as a whole number, e.g., 10 means 10%
+  joined?: boolean;  // true if the connected account is a member
 }
 
 // Define a typed interface for activity items (dummy data)
@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pools, setPools] = useState<PoolDetails[]>([]);
 
-  // Dummy stats for the stats cards
+  // Dummy stats for the top stats cards
   const [stats] = useState({
     tvl: "$4.2M",
     users: "1,452",
@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
     visible: { opacity: 1 }
   };
 
-  // Dummy recent activities for the bottom feed
+  // Dummy recent activities for the activity feed (unchanged)
   const activities: Activity[] = [
     {
       id: 1,
@@ -112,27 +112,28 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  // Fetch pool data from the contract (and membership status if account exists)
+  // Fetch pool data from the contract (and check membership status if account exists)
   useEffect(() => {
     if (!contract) {
       console.log("Contract not connected.");
       return;
     }
-    
     const fetchPools = async () => {
       setIsLoading(true);
       try {
         const nextPoolId = await contract.nextPoolId();
         const total = Number(nextPoolId);
         setPoolCount(total);
-        
+
+        // Fetch details for each pool in parallel
         const poolDetailsArray = await Promise.all(
           Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
         );
-        
+
         // Map over fetched pools and check membership if account is connected
         const formattedPools: PoolDetails[] = await Promise.all(
           poolDetailsArray.map(async (p: any) => {
+            // If an account is connected, fetch pool members to determine membership
             const members = account ? await contract.getPoolMembers(p[0]) : [];
             const joined = account
               ? members.some((member: any) =>
@@ -151,11 +152,10 @@ const Dashboard: React.FC = () => {
               isActive: p[8],
               poolType: p.length > 9 ? p[9] : undefined,
               fee: p.length > 10 ? BigInt(p[10].toString()) : undefined,
-              joined // Indicates whether the connected account is a member of this pool
+              joined
             };
           })
         );
-        
         setPools(formattedPools);
       } catch (error) {
         console.error("Error fetching pools:", error);
@@ -166,7 +166,7 @@ const Dashboard: React.FC = () => {
     fetchPools();
   }, [contract, account]);
 
-  // Conversion helper: Assume 1 ETH = $1600 USD (adjust conversion factor as necessary)
+  // Conversion helper: assume 1 ETH = $1600 USD (adjust conversion factor as necessary)
   const convertEthToUSD = (weiValue: bigint) => {
     const ethValue = parseFloat(ethers.formatEther(weiValue.toString()));
     return (ethValue * 1600).toFixed(2);
@@ -367,9 +367,9 @@ const Dashboard: React.FC = () => {
                 const cycleDurationDays = Number(pool.cycleDuration) / 86400;
                 const contributionEth = ethers.formatEther(pool.contributionAmount.toString());
                 const contributionUSD = parseFloat(contributionEth) * 1600; // Adjust conversion factor as necessary
-
+                
                 // Determine action text:
-                // If connected account is the creator or already joined, show "Contribute"; otherwise, "Join Pool"
+                // If connected account is the creator or already joined, show "Contribute"; otherwise, show "Join Pool"
                 const actionText =
                   (pool.creator.toLowerCase() === account?.toLowerCase() || pool.joined)
                     ? "Contribute"
@@ -412,14 +412,14 @@ const Dashboard: React.FC = () => {
                           {pool.isActive ? "Active" : "Inactive"}
                         </span>
                       </div>
-
-                      {/* Show ULT Balance & Claim Section if account is connected and is a member (not creator) */}
+                      
+                      {/* Show ULT Balance & Claim Section if user is connected and is a member but not the creator */}
                       {account && pool.creator.toLowerCase() !== account.toLowerCase() && pool.joined && (
                         <div className="mb-4">
                           <UltBalanceAndClaim poolId={poolIdStr} />
                         </div>
                       )}
-
+  
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
