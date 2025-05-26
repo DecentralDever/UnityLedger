@@ -8,7 +8,10 @@ import { useWallet } from '../context/WalletProvider';
 const abi = abiJson as unknown as ethers.InterfaceAbi;
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 console.log("Contract Address:", contractAddress);
-
+console.log(
+  "getPoolDetails fields:",
+  abi.find(f => f.name === "getPoolDetails")?.outputs[0].components.length
+);
 export function useUnityLedgerContract() {
   const { provider, signer } = useWallet();
 
