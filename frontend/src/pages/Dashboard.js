@@ -218,43 +218,43 @@ const Dashboard = () => {
 
                 // Enhanced pool formatting with membership and action detection
                 const formattedPools = await Promise.all(
-                    poolDetailsArray.map(async (poolInfo) => {
+                    poolDetailsArray.map(async (details) => {
                         let joined = false;
                         let canJoin = false;
                         let canContribute = false;
 
                         if (account) {
                             try {
-                                const members = await contract.getPoolMembers(poolInfo.id);
+                                const members = await contract.getPoolMembers(details[0]);
                                 joined = members.some((member) =>
                                     member.wallet.toLowerCase() === account.toLowerCase()
                                 );
 
                                 // Determine if user can join (not started, not full, not already joined)
                                 canJoin = !joined && 
-                                         Number(poolInfo.currentCycle) === 0 && 
-                                         Number(poolInfo.totalMembers) < Number(poolInfo.maxMembers) && 
-                                         poolInfo.isActive;
+                                         Number(details[6]) === 0 && 
+                                         Number(details[5]) < Number(details[4]) && 
+                                         details[8];
 
                                 // Determine if user can contribute (is member and pool is active)
-                                canContribute = joined && poolInfo.isActive;
+                                canContribute = joined && details[8];
                             } catch (memberError) {
-                                console.warn("Error checking membership for pool", poolInfo.id, memberError);
+                                console.warn("Error checking membership for pool", details[0], memberError);
                             }
                         }
 
                         return {
-                            id: BigInt(poolInfo.id.toString()),
-                            creator: poolInfo.creator,
-                            contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
-                            cycleDuration: BigInt(poolInfo.cycleDuration.toString()),
-                            maxMembers: BigInt(poolInfo.maxMembers.toString()),
-                            totalMembers: BigInt(poolInfo.totalMembers.toString()),
-                            currentCycle: BigInt(poolInfo.currentCycle.toString()),
-                            lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
-                            isActive: poolInfo.isActive,
-                            poolType: poolInfo.poolType,
-                            fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
+                            id: BigInt(details[0].toString()),
+                            creator: details[1],
+                            contributionAmount: BigInt(details[2].toString()),
+                            cycleDuration: BigInt(details[3].toString()),
+                            maxMembers: BigInt(details[4].toString()),
+                            totalMembers: BigInt(details[5].toString()),
+                            currentCycle: BigInt(details[6].toString()),
+                            lastPayoutTime: BigInt(details[7].toString()),
+                            isActive: details[8],
+                            poolType: details.length > 9 ? details[9] : "Pool",
+                            fee: details.length > 10 ? BigInt(details[10].toString()) : BigInt(0),
                             joined,
                             canJoin,
                             canContribute
