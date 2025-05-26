@@ -70,7 +70,7 @@ const AllPools = () => {
                     return {
                         id: Number(poolInfo.id),
                         creator: poolInfo.creator,
-                        contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
+                        contributionAmount: poolInfo.contributionAmount,
                         cycleDuration: poolInfo.cycleDuration,
                         maxMembers: Number(poolInfo.maxMembers),
                         totalMembers: Number(poolInfo.totalMembers),
@@ -277,8 +277,8 @@ const AllPools = () => {
                         animate: { opacity: 1 },
                         children: filteredPools.map((pool) => {
                             const contributionEth = ethers.formatEther(pool.contributionAmount.toString());
-                            const contributionUSD = parseFloat(contributionEth) * 2500;
-                            const cycleDays = Number(pool.cycleDuration) / 86400;
+                            const contributionUSD = parseFloat(contributionEth) * 1600;
+                            const cycleDays = pool.cycleDuration / 86400;
                             const completionPercentage = (pool.totalMembers / pool.maxMembers) * 100;
 
                             return _jsx(Link, { 
