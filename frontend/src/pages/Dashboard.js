@@ -189,7 +189,7 @@ const Dashboard = () => {
         }
     };
 
-    // Fetch pool data with enhanced error handling and membership status
+    // Fixed pool fetching with proper error handling
     useEffect(() => {
         if (!contract) {
             setError("Contract not connected");
@@ -212,9 +212,38 @@ const Dashboard = () => {
                     return;
                 }
 
-                const poolDetailsArray = await Promise.all(
-                    Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
-                );
+                const poolDetailsArray = [];
+                
+                // Fetch pools individually with better error handling
+                for (let i = 0; i < total; i++) {
+                    try {
+                        const poolInfo = await contract.getPoolDetails(i);
+                        
+                        // Handle the response whether it's an object or array
+                        const poolData = {
+                            id: poolInfo.id || poolInfo[0],
+                            creator: poolInfo.creator || poolInfo[1],
+                            contributionAmount: poolInfo.contributionAmount || poolInfo[2],
+                            cycleDuration: poolInfo.cycleDuration || poolInfo[3],
+                            maxMembers: poolInfo.maxMembers || poolInfo[4],
+                            totalMembers: poolInfo.totalMembers || poolInfo[5],
+                            currentCycle: poolInfo.currentCycle || poolInfo[6],
+                            lastPayoutTime: poolInfo.lastPayoutTime || poolInfo[7],
+                            createdAt: poolInfo.createdAt || poolInfo[8],
+                            isActive: poolInfo.isActive !== undefined ? poolInfo.isActive : poolInfo[9],
+                            isCompleted: poolInfo.isCompleted !== undefined ? poolInfo.isCompleted : poolInfo[10],
+                            poolType: poolInfo.poolType || poolInfo[11] || "Savings",
+                            fee: poolInfo.fee || poolInfo[12] || 0,
+                            totalContributions: poolInfo.totalContributions || poolInfo[13] || 0,
+                            totalPayouts: poolInfo.totalPayouts || poolInfo[14] || 0
+                        };
+                        
+                        poolDetailsArray.push(poolData);
+                    } catch (poolError) {
+                        console.error(`Error fetching pool ${i}:`, poolError);
+                        // Continue with other pools
+                    }
+                }
 
                 // Enhanced pool formatting with membership and action detection
                 const formattedPools = await Promise.all(
@@ -222,23 +251,24 @@ const Dashboard = () => {
                         let joined = false;
                         let canJoin = false;
                         let canContribute = false;
+                        const poolId = poolInfo.id?.toString() || poolInfo.toString();
 
                         if (account) {
                             try {
-                                const members = await contract.getPoolMembers(poolInfo.id);
+                                const members = await contract.getPoolMembers(poolId);
                                 joined = members.some((member) =>
                                     member.wallet.toLowerCase() === account.toLowerCase()
                                 );
 
-                                canJoin = await contract.canJoinPool(poolInfo.id, account);
-                                canContribute = await contract.canContribute(poolInfo.id, account);
+                                canJoin = await contract.canJoinPool(poolId, account);
+                                canContribute = await contract.canContribute(poolId, account);
                             } catch (memberError) {
-                                console.warn("Error checking membership for pool", poolInfo.id, memberError);
+                                console.warn("Error checking membership for pool", poolId, memberError);
                             }
                         }
 
                         return {
-                            id: BigInt(poolInfo.id.toString()),
+                            id: BigInt(poolId),
                             creator: poolInfo.creator,
                             contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
                             cycleDuration: BigInt(poolInfo.cycleDuration.toString()),
@@ -247,6 +277,7 @@ const Dashboard = () => {
                             currentCycle: BigInt(poolInfo.currentCycle.toString()),
                             lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
                             isActive: poolInfo.isActive,
+                            isCompleted: poolInfo.isCompleted,
                             poolType: poolInfo.poolType,
                             fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
                             joined,
@@ -260,7 +291,7 @@ const Dashboard = () => {
                 calculateStats(formattedPools);
             } catch (error) {
                 console.error("Error fetching pools:", error);
-                setError("Failed to fetch pool data");
+                setError(error.reason || error.message || "Failed to fetch pool data");
             }
             
             setIsLoading(false);
