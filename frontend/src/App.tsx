@@ -9,6 +9,9 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { WalletProvider } from "./context/WalletProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
+import AllPools from "./pages/Allpools";
+import Analytics from "./pages/Analytics";
+import Leaderboard from "./pages/Leaderboard";
 
 const App: React.FC = () => {
   return (
@@ -20,9 +23,9 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/join-create" element={<JoinCreatePool />} />
               <Route path="/pool/:poolId" element={<ViewPool />} />
-              <Route path="/pools" element={<div>All Pools</div>} />
-              <Route path="/analytics" element={<div>Analytics</div>} />
-              <Route path="/leaderboard" element={<div>Leaderboard</div>} />
+              <Route path="/pools" element={<AllPools />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/privacy" element={<div>Privacy Policy</div>} />
               <Route path="/terms" element={<div>Terms of Service</div>} />
               <Route path="*" element={<div>Page Not Found</div>} />

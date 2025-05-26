@@ -8,7 +8,9 @@
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
-      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" }
+      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "contributionAmount", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "maxMembers", "type": "uint256" }
     ],
     "name": "PoolCreated",
     "type": "event"
@@ -17,7 +19,8 @@
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
-      { "indexed": true, "internalType": "address", "name": "member", "type": "address" }
+      { "indexed": true, "internalType": "address", "name": "member", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
     ],
     "name": "JoinedPool",
     "type": "event"
@@ -27,7 +30,8 @@
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
       { "indexed": true, "internalType": "address", "name": "member", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "cycle", "type": "uint256" }
     ],
     "name": "ContributionReceived",
     "type": "event"
@@ -37,7 +41,8 @@
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
       { "indexed": true, "internalType": "address", "name": "recipient", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "cycle", "type": "uint256" }
     ],
     "name": "PayoutSent",
     "type": "event"
@@ -45,7 +50,8 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "member", "type": "address" }
+      { "indexed": true, "internalType": "address", "name": "member", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "missedPayments", "type": "uint256" }
     ],
     "name": "MemberBlacklisted",
     "type": "event"
@@ -54,9 +60,28 @@
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "cycle", "type": "uint256" }
+      { "indexed": false, "internalType": "uint256", "name": "cycle", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
     ],
     "name": "NewCycleStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" }
+    ],
+    "name": "PoolClosed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+    ],
+    "name": "PoolCompleted",
     "type": "event"
   },
   {
@@ -68,6 +93,88 @@
     ],
     "name": "YieldClaimed",
     "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "member", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "EmergencyWithdrawal",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "blacklistAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "calculateYield",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "canContribute",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "canJoinPool",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "claimYield",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "closePool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "contribute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
     "inputs": [
@@ -89,77 +196,9 @@
     "inputs": [
       { "internalType": "uint256", "name": "poolId", "type": "uint256" }
     ],
-    "name": "joinPool",
+    "name": "emergencyWithdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
-    ],
-    "name": "contribute",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
-    ],
-    "name": "startNewCycle",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
-    ],
-    "name": "claimYield",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
-    ],
-    "name": "getPoolDetails",
-    "outputs": [
-      { "internalType": "uint256", "name": "id", "type": "uint256" },
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "uint256", "name": "contributionAmount", "type": "uint256" },
-      { "internalType": "uint256", "name": "cycleDuration", "type": "uint256" },
-      { "internalType": "uint256", "name": "maxMembers", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalMembers", "type": "uint256" },
-      { "internalType": "uint256", "name": "currentCycle", "type": "uint256" },
-      { "internalType": "uint256", "name": "lastPayoutTime", "type": "uint256" },
-      { "internalType": "bool", "name": "isActive", "type": "bool" },
-      { "internalType": "string", "name": "poolType", "type": "string" },
-      { "internalType": "uint256", "name": "fee", "type": "uint256" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
-    ],
-    "name": "getPoolMembers",
-    "outputs": [
-      {
-        "components": [
-          { "internalType": "address", "name": "wallet", "type": "address" },
-          { "internalType": "uint256", "name": "joinedAt", "type": "uint256" },
-          { "internalType": "bool", "name": "hasReceivedPayout", "type": "bool" }
-        ],
-        "internalType": "struct UnityLedger.Member[]",
-        "name": "",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -174,10 +213,90 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "nextPoolId",
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "getPoolDetails",
     "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
+      {
+        "components": [
+          { "internalType": "uint256", "name": "id", "type": "uint256" },
+          { "internalType": "address", "name": "creator", "type": "address" },
+          { "internalType": "uint256", "name": "contributionAmount", "type": "uint256" },
+          { "internalType": "uint256", "name": "cycleDuration", "type": "uint256" },
+          { "internalType": "uint256", "name": "maxMembers", "type": "uint256" },
+          { "internalType": "uint256", "name": "totalMembers", "type": "uint256" },
+          { "internalType": "uint256", "name": "currentCycle", "type": "uint256" },
+          { "internalType": "uint256", "name": "lastPayoutTime", "type": "uint256" },
+          { "internalType": "uint256", "name": "createdAt", "type": "uint256" },
+          { "internalType": "bool", "name": "isActive", "type": "bool" },
+          { "internalType": "bool", "name": "isCompleted", "type": "bool" },
+          { "internalType": "string", "name": "poolType", "type": "string" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          { "internalType": "uint256", "name": "totalContributions", "type": "uint256" },
+          { "internalType": "uint256", "name": "totalPayouts", "type": "uint256" }
+        ],
+        "internalType": "struct UnityLedger.PoolInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "getPoolMembers",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "wallet", "type": "address" },
+          { "internalType": "uint256", "name": "joinedAt", "type": "uint256" },
+          { "internalType": "bool", "name": "hasReceivedPayout", "type": "bool" },
+          { "internalType": "uint256", "name": "totalContributed", "type": "uint256" },
+          { "internalType": "uint256", "name": "missedContributions", "type": "uint256" }
+        ],
+        "internalType": "struct UnityLedger.Member[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPoolStats",
+    "outputs": [
+      { "internalType": "uint256", "name": "totalPools", "type": "uint256" },
+      { "internalType": "uint256", "name": "activePools", "type": "uint256" },
+      { "internalType": "uint256", "name": "totalMembers", "type": "uint256" },
+      { "internalType": "uint256", "name": "totalValue", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "getUserPools",
+    "outputs": [
+      { "internalType": "uint256[]", "name": "", "type": "uint256[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" },
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "hasContributedThisCycle",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -195,11 +314,50 @@
   },
   {
     "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "joinPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "lastClaimTime",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       { "internalType": "address", "name": "", "type": "address" }
     ],
     "name": "missedPayments",
     "outputs": [
       { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextPoolId",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      { "internalType": "address", "name": "", "type": "address" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -214,5 +372,102 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformFee",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "poolMembers",
+    "outputs": [
+      { "internalType": "address", "name": "wallet", "type": "address" },
+      { "internalType": "uint256", "name": "joinedAt", "type": "uint256" },
+      { "internalType": "bool", "name": "hasReceivedPayout", "type": "bool" },
+      { "internalType": "uint256", "name": "totalContributed", "type": "uint256" },
+      { "internalType": "uint256", "name": "missedContributions", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "removeFromBlacklist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_fee", "type": "uint256" }
+    ],
+    "name": "setPlatformFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "tokenAddress", "type": "address" }
+    ],
+    "name": "setUltToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "poolId", "type": "uint256" }
+    ],
+    "name": "startNewCycle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ultToken",
+    "outputs": [
+      { "internalType": "contract IERC20Mintable", "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "userPoolCount",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "userPools",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]
