@@ -1,7 +1,7 @@
 // src/services/contract.ts
 import { ethers } from 'ethers';
 import { useMemo } from 'react';
-import abiJson from '../abis/UnityLedgerABI.json';
+import abiJson from '../abis/UnityLedgerABI.json'
 import { useWallet } from '../context/WalletProvider';
 // Cast the imported ABI to ethers.InterfaceAbi
 const abi = abiJson;
