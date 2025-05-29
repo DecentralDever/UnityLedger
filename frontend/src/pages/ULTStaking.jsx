@@ -19,23 +19,31 @@ import {
 const ULTStaking = () => {
   const { account } = useWallet();
   
-  // Network addresses
+  // Network addresses state
+  const [ultTokenAddress, setUltTokenAddress] = useState(null);
+  
+  // Get network addresses based on chainId
   const getNetworkAddresses = async () => {
-    if (!window.ethereum) return { ultToken: '' };
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const { chainId } = await provider.getNetwork();
-    switch (chainId) {
-      case 50311: // Somnia Devnet
-        return { ultToken: '0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5' };
-      case 4202:  // Lisk Sepolia
-        return { ultToken: '0xCaB2f442dBaa702593d915dc1dD5333943081C37' };
-      default:
+    if (!window.ethereum) return null;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      
+      if (chainId === 50311) { // Somnia Devnet
+        return '0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5';
+      } else if (chainId === 4202) { // Lisk Sepolia
+        return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
+      } else {
         console.warn('Unknown network, defaulting to Lisk Sepolia');
-        return { ultToken: '0xCaB2f442dBaa702593d915dc1dD5333943081C37' };
+        return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
+      }
+    } catch (error) {
+      console.error('Error detecting network:', error);
+      return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
     }
   };
-
-  const { ultToken: ULT_TOKEN_ADDRESS } = getNetworkAddresses();
 
   // States
   const [ultBalance, setUltBalance] = useState('0');
@@ -69,17 +77,26 @@ const ULTStaking = () => {
     "function stakingRewardRate() view returns (uint256)"
   ];
 
+  // Initialize network address
+  useEffect(() => {
+    const initAddress = async () => {
+      const address = await getNetworkAddresses();
+      setUltTokenAddress(address);
+    };
+    initAddress();
+  }, []);
+
   // Get ULT contract
   const getULTContract = async () => {
-    if (!window.ethereum) return null;
-    const { ultToken } = await getNetworkAddresses();
+    if (!window.ethereum || !ultTokenAddress) return null;
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    return new ethers.Contract(ultToken, ULT_ABI, signer);
+    return new ethers.Contract(ultTokenAddress, ULT_ABI, signer);
   };
+
   // Load staking data
   const loadStakingData = async () => {
-    if (!account) {
+    if (!account || !ultTokenAddress) {
       setIsLoading(false);
       return;
     }
@@ -139,14 +156,9 @@ const ULTStaking = () => {
 
       const amount = ethers.parseEther(stakeAmount);
       
-      // Check allowance
-      const allowance = await ultContract.allowance(account, ULT_TOKEN_ADDRESS);
-      if (allowance < amount) {
-        toast.info("Approving ULT for staking...");
-        const approveTx = await ultContract.approve(ULT_TOKEN_ADDRESS, ethers.parseEther("10000"));
-        await approveTx.wait();
-      }
-
+      // For self-staking, we don't need to check allowance
+      // The contract stakes its own tokens
+      
       const tx = await ultContract.stake(amount);
       toast.info("Staking tokens...");
       await tx.wait();
@@ -225,16 +237,20 @@ const ULTStaking = () => {
   };
 
   useEffect(() => {
-    loadStakingData();
-  }, [account]);
+    if (ultTokenAddress && account) {
+      loadStakingData();
+    }
+  }, [account, ultTokenAddress]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(loadStakingData, 30000);
-    return () => clearInterval(interval);
-  }, [account]);
+    if (ultTokenAddress && account) {
+      const interval = setInterval(loadStakingData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [account, ultTokenAddress]);
 
-  if (isLoading) {
+  if (isLoading || !ultTokenAddress) {
     return (
       <div className="max-w-6xl mx-auto p-6 flex justify-center items-center min-h-[400px]">
         <div className="text-center">
