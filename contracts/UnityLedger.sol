@@ -1,19 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-/// @notice Minimal interface for a mintable ERC20 (ULT token)
 interface IERC20Mintable {
     function mint(address to, uint256 amount) external;
     function balanceOf(address account) external view returns (uint256);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function burnFromFees(uint256 amount) external;
+    function getFeeDiscount(address user) external view returns (uint256);
 }
 
 contract UnityLedger {
     uint256 public nextPoolId;
     address public owner;
     uint256 public platformFee = 100; // 1% in basis points (100/10000)
+    uint256 public creatorRewardRate = 50; // 0.5% per member (50/10000)
     uint256 public constant MAX_MEMBERS = 50;
     uint256 public constant MIN_CONTRIBUTION = 0.001 ether;
     uint256 public constant MAX_APY = 50; // 50% max APY
+    
+    // ULT Integration
+    uint256 public poolCreationFeeULT = 500 * 10**18; // 500 ULT to create pool
+    uint256 public premiumPoolFeeULT = 2000 * 10**18; // 2000 ULT for premium pools
+    bool public ultFeesEnabled = true;
 
     struct Pool {
         uint256 id;
@@ -27,14 +35,18 @@ contract UnityLedger {
         uint256 createdAt;
         bool isActive;
         bool isCompleted;
-        address[] payoutOrder;
+        address[] memberJoinOrder;
         string poolType;
         uint256 fee; // APY (%)
         uint256 totalContributions;
         uint256 totalPayouts;
+        uint256 creatorRewards;
+        bool creatorJoined;
+        bool isPremium; // Premium pools have higher yields
         mapping(address => bool) hasJoined;
         mapping(uint256 => mapping(address => bool)) hasContributed;
         mapping(uint256 => mapping(address => uint256)) contributionTime;
+        mapping(address => uint256) lockedBalances;
     }
 
     struct Member {
@@ -43,6 +55,7 @@ contract UnityLedger {
         bool hasReceivedPayout;
         uint256 totalContributed;
         uint256 missedContributions;
+        uint256 lockedBalance;
     }
 
     struct PoolInfo {
@@ -61,6 +74,9 @@ contract UnityLedger {
         uint256 fee;
         uint256 totalContributions;
         uint256 totalPayouts;
+        uint256 creatorRewards;
+        bool creatorJoined;
+        bool isPremium;
     }
 
     // Storage
@@ -73,20 +89,28 @@ contract UnityLedger {
     mapping(address => uint256[]) public userPools;
     mapping(address => uint256) public userPoolCount;
     
-    // ULT token contract for yield rewards
+    // ULT token contract
     IERC20Mintable public ultToken;
+    uint256 public totalUltBurned;
 
     // Events
-    event PoolCreated(uint256 indexed poolId, address indexed creator, uint256 contributionAmount, uint256 maxMembers);
-    event JoinedPool(uint256 indexed poolId, address indexed member, uint256 timestamp);
+    event PoolCreated(uint256 indexed poolId, address indexed creator, uint256 contributionAmount, uint256 maxMembers, bool isPremium);
+    event JoinedPool(uint256 indexed poolId, address indexed member, uint256 timestamp, uint256 position);
     event ContributionReceived(uint256 indexed poolId, address indexed member, uint256 amount, uint256 cycle);
     event PayoutSent(uint256 indexed poolId, address indexed recipient, uint256 amount, uint256 cycle);
+    event CreatorRewardEarned(uint256 indexed poolId, address indexed creator, uint256 amount);
+    event CreatorRewardClaimed(uint256 indexed poolId, address indexed creator, uint256 amount);
+    event FundsLocked(uint256 indexed poolId, address indexed member, uint256 amount);
+    event FundsUnlocked(uint256 indexed poolId, address indexed member, uint256 amount);
     event MemberBlacklisted(address indexed member, uint256 missedPayments);
     event NewCycleStarted(uint256 indexed poolId, uint256 cycle, uint256 timestamp);
     event PoolClosed(uint256 indexed poolId, address indexed creator);
     event PoolCompleted(uint256 indexed poolId, uint256 timestamp);
     event YieldClaimed(uint256 indexed poolId, address indexed member, uint256 amount);
     event EmergencyWithdrawal(uint256 indexed poolId, address indexed member, uint256 amount);
+    event UltBurned(uint256 amount, string reason);
+    event FeeDiscountApplied(address indexed user, uint256 discount, uint256 originalFee, uint256 discountedFee);
+    event UltMinted(address indexed recipient, uint256 amount);
 
     // Modifiers
     modifier onlyOwner() {
@@ -124,6 +148,25 @@ contract UnityLedger {
         platformFee = _fee;
     }
 
+    function setCreatorRewardRate(uint256 _rate) external onlyOwner {
+        require(_rate <= 200, "Rate too high"); // Max 2%
+        creatorRewardRate = _rate;
+    }
+
+    function setPoolCreationFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 10000 * 10**18, "Fee too high"); // Max 10k ULT
+        poolCreationFeeULT = _fee;
+    }
+
+    function setPremiumPoolFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 50000 * 10**18, "Fee too high"); // Max 50k ULT
+        premiumPoolFeeULT = _fee;
+    }
+
+    function toggleUltFees(bool enabled) external onlyOwner {
+        ultFeesEnabled = enabled;
+    }
+
     function blacklistAddress(address user) external onlyOwner {
         isBlacklisted[user] = true;
         emit MemberBlacklisted(user, missedPayments[user]);
@@ -133,26 +176,45 @@ contract UnityLedger {
         isBlacklisted[user] = false;
     }
 
-    // Enhanced pool creation with better validation
+    function mintUltToAddress(address to, uint256 amount) external onlyOwner {
+        require(address(ultToken) != address(0), "ULT token not set");
+        require(to != address(0), "Invalid recipient");
+        require(amount > 0, "Amount must be > 0");
+        
+        ultToken.mint(to, amount);
+        
+        emit UltMinted(to, amount);
+    }
+
+    // Enhanced pool creation with ULT fees
     function createPool(
         uint256 contributionAmount,
         uint256 cycleDuration,
         uint256 maxMembers,
-        address[] memory payoutOrder,
         string memory poolType,
-        uint256 fee
+        uint256 fee,
+        bool isPremium
     ) external notBlacklisted returns (uint256) {
         require(contributionAmount >= MIN_CONTRIBUTION, "Contribution too low");
         require(cycleDuration >= 1 days, "Cycle too short");
         require(cycleDuration <= 365 days, "Cycle too long");
         require(maxMembers >= 2 && maxMembers <= MAX_MEMBERS, "Invalid member count");
-        require(payoutOrder.length == maxMembers, "Payout order mismatch");
         require(fee <= MAX_APY, "APY too high");
         require(bytes(poolType).length > 0, "Pool type required");
 
-        // Validate payout order addresses
-        for (uint256 i = 0; i < payoutOrder.length; i++) {
-            require(payoutOrder[i] != address(0), "Invalid payout address");
+        // Charge ULT creation fee
+        if (ultFeesEnabled && address(ultToken) != address(0)) {
+            uint256 creationFee = isPremium ? premiumPoolFeeULT : poolCreationFeeULT;
+            require(
+                ultToken.transferFrom(msg.sender, address(this), creationFee),
+                "ULT fee payment failed"
+            );
+            
+            // Burn 50% of creation fee
+            uint256 burnAmount = creationFee / 2;
+            ultToken.burnFromFees(burnAmount);
+            totalUltBurned += burnAmount;
+            emit UltBurned(burnAmount, "Pool creation fee");
         }
 
         Pool storage newPool = pools[nextPoolId];
@@ -167,47 +229,65 @@ contract UnityLedger {
         newPool.isCompleted = false;
         newPool.lastPayoutTime = block.timestamp;
         newPool.createdAt = block.timestamp;
-        newPool.payoutOrder = payoutOrder;
         newPool.poolType = poolType;
-        newPool.fee = fee;
+        newPool.fee = isPremium ? fee + 5 : fee; // Premium pools get 5% bonus APY
         newPool.totalContributions = 0;
         newPool.totalPayouts = 0;
+        newPool.creatorRewards = 0;
+        newPool.creatorJoined = false;
+        newPool.isPremium = isPremium;
 
         // Add creator to user pools tracking
         userPools[msg.sender].push(nextPoolId);
         userPoolCount[msg.sender]++;
 
-        emit PoolCreated(nextPoolId, msg.sender, contributionAmount, maxMembers);
+        emit PoolCreated(nextPoolId, msg.sender, contributionAmount, maxMembers, isPremium);
         return nextPoolId++;
     }
 
-    // Enhanced join pool with better validation
+    // Enhanced join pool with automatic payout order
     function joinPool(uint256 poolId) external validPoolId(poolId) notBlacklisted {
         Pool storage pool = pools[poolId];
         require(pool.isActive, "Pool not active");
         require(pool.currentCycle == 0, "Pool already started");
         require(!pool.hasJoined[msg.sender], "Already joined");
         require(pool.totalMembers < pool.maxMembers, "Pool full");
-        require(msg.sender != pool.creator, "Creator auto-joined");
+
+        // Creator can join their own pool
+        if (msg.sender == pool.creator) {
+            pool.creatorJoined = true;
+        }
 
         pool.hasJoined[msg.sender] = true;
         pool.totalMembers++;
+        
+        // Add to join order (becomes payout order)
+        pool.memberJoinOrder.push(msg.sender);
+        
         poolMembers[poolId].push(Member({
             wallet: msg.sender,
             joinedAt: block.timestamp,
             hasReceivedPayout: false,
             totalContributed: 0,
-            missedContributions: 0
+            missedContributions: 0,
+            lockedBalance: 0
         }));
 
         // Track user pools
         userPools[msg.sender].push(poolId);
         userPoolCount[msg.sender]++;
 
-        emit JoinedPool(poolId, msg.sender, block.timestamp);
+        // Creator earns reward for each new member (except themselves)
+        if (msg.sender != pool.creator) {
+            uint256 creatorReward = (pool.contributionAmount * creatorRewardRate) / 10000;
+            pool.creatorRewards += creatorReward;
+            emit CreatorRewardEarned(poolId, pool.creator, creatorReward);
+        }
+
+        emit JoinedPool(poolId, msg.sender, block.timestamp, pool.totalMembers);
     }
 
-    // Enhanced contribute function
+    // Enhanced contribute function with ULT fee discounts
     function contribute(uint256 poolId) external payable validPoolId(poolId) onlyPoolMember(poolId) notBlacklisted {
         Pool storage pool = pools[poolId];
         require(pool.isActive && !pool.isCompleted, "Pool not accepting contributions");
@@ -218,15 +298,20 @@ contract UnityLedger {
         pool.contributionTime[pool.currentCycle][msg.sender] = block.timestamp;
         pool.totalContributions += msg.value;
 
+        // Lock funds in contract
+        pool.lockedBalances[msg.sender] += msg.value;
+
         // Update member stats
         for (uint256 i = 0; i < poolMembers[poolId].length; i++) {
             if (poolMembers[poolId][i].wallet == msg.sender) {
                 poolMembers[poolId][i].totalContributed += msg.value;
+                poolMembers[poolId][i].lockedBalance += msg.value;
                 break;
             }
         }
 
         emit ContributionReceived(poolId, msg.sender, msg.value, pool.currentCycle);
+        emit FundsLocked(poolId, msg.sender, msg.value);
 
         // Check if all members contributed
         uint256 contributionsCount = 0;
@@ -244,14 +329,17 @@ contract UnityLedger {
         }
     }
 
-    // Enhanced payout function
+    // Enhanced payout with ULT fee discounts
     function _payout(uint256 poolId) internal {
         Pool storage pool = pools[poolId];
         require(pool.currentCycle < pool.maxMembers, "All cycles completed");
 
-        address recipient = pool.payoutOrder[pool.currentCycle];
+        address recipient = pool.memberJoinOrder[pool.currentCycle];
         uint256 totalAmount = pool.contributionAmount * pool.totalMembers;
-        uint256 platformFeeAmount = (totalAmount * platformFee) / 10000;
+        
+        // Apply ULT staking discount to platform fee
+        uint256 effectivePlatformFee = _getEffectivePlatformFee(recipient);
+        uint256 platformFeeAmount = (totalAmount * effectivePlatformFee) / 10000;
         uint256 payoutAmount = totalAmount - platformFeeAmount;
 
         // Update payout tracking
@@ -260,7 +348,7 @@ contract UnityLedger {
         pool.currentCycle++;
         pool.lastPayoutTime = block.timestamp;
 
-        // Mark recipient as received payout
+        // Mark recipient as received payout (funds still locked)
         for (uint256 i = 0; i < poolMembers[poolId].length; i++) {
             if (poolMembers[poolId][i].wallet == recipient) {
                 poolMembers[poolId][i].hasReceivedPayout = true;
@@ -268,7 +356,7 @@ contract UnityLedger {
             }
         }
 
-        // Send payments
+        // Send payout (but member's contributions remain locked)
         payable(recipient).transfer(payoutAmount);
         if (platformFeeAmount > 0) {
             payable(owner).transfer(platformFeeAmount);
@@ -280,36 +368,58 @@ contract UnityLedger {
         if (pool.currentCycle >= pool.maxMembers) {
             pool.isCompleted = true;
             pool.isActive = false;
+            _unlockAllFunds(poolId);
             emit PoolCompleted(poolId, block.timestamp);
         }
     }
 
-    // Manual cycle start with penalty tracking
-    function startNewCycle(uint256 poolId) external validPoolId(poolId) {
-        Pool storage pool = pools[poolId];
-        require(pool.isActive && !pool.isCompleted, "Pool not active");
-        require(block.timestamp >= pool.lastPayoutTime + pool.cycleDuration, "Cycle not ready");
-
-        // Track missed contributions
-        for (uint256 i = 0; i < poolMembers[poolId].length; i++) {
-            address member = poolMembers[poolId][i].wallet;
-            if (!pool.hasContributed[pool.currentCycle][member]) {
-                missedPayments[member]++;
-                poolMembers[poolId][i].missedContributions++;
-                
-                if (missedPayments[member] >= 3) {
-                    isBlacklisted[member] = true;
-                    emit MemberBlacklisted(member, missedPayments[member]);
-                }
-            }
+    // Get effective platform fee with ULT discount
+    function _getEffectivePlatformFee(address user) internal returns (uint256) {
+        if (address(ultToken) == address(0)) return platformFee;
+        
+        uint256 discount = ultToken.getFeeDiscount(user);
+        if (discount > 0) {
+            uint256 discountedFee = platformFee * (100 - discount) / 100;
+            emit FeeDiscountApplied(user, discount, platformFee, discountedFee);
+            return discountedFee;
         }
-
-        pool.lastPayoutTime = block.timestamp;
-        pool.currentCycle++;
-        emit NewCycleStarted(poolId, pool.currentCycle, block.timestamp);
+        
+        return platformFee;
     }
 
-    // Enhanced yield claiming
+    // Unlock all member funds when pool completes
+    function _unlockAllFunds(uint256 poolId) internal {
+        Pool storage pool = pools[poolId];
+        
+        for (uint256 i = 0; i < poolMembers[poolId].length; i++) {
+            address member = poolMembers[poolId][i].wallet;
+            uint256 lockedAmount = pool.lockedBalances[member];
+            
+            if (lockedAmount > 0) {
+                pool.lockedBalances[member] = 0;
+                poolMembers[poolId][i].lockedBalance = 0;
+                
+                // Transfer unlocked funds to member
+                payable(member).transfer(lockedAmount);
+                emit FundsUnlocked(poolId, member, lockedAmount);
+            }
+        }
+    }
+
+    // Creator can claim accumulated rewards
+    function claimCreatorRewards(uint256 poolId) external validPoolId(poolId) {
+        Pool storage pool = pools[poolId];
+        require(msg.sender == pool.creator, "Only creator");
+        require(pool.creatorRewards > 0, "No rewards available");
+
+        uint256 rewards = pool.creatorRewards;
+        pool.creatorRewards = 0;
+
+        payable(pool.creator).transfer(rewards);
+        emit CreatorRewardClaimed(poolId, pool.creator, rewards);
+    }
+
+    // Enhanced yield claiming with premium pool bonuses
     function claimYield(uint256 poolId) external validPoolId(poolId) onlyPoolMember(poolId) {
         Pool storage pool = pools[poolId];
         require(address(ultToken) != address(0), "ULT token not set");
@@ -320,35 +430,18 @@ contract UnityLedger {
         require(timeElapsed >= 1 hours, "Claim too frequent");
 
         uint256 yieldEarned = (pool.contributionAmount * pool.fee * timeElapsed) / (365 days * 100);
+        
+        // Premium pool bonus
+        if (pool.isPremium) {
+            yieldEarned = yieldEarned * 120 / 100; // 20% bonus for premium pools
+        }
+        
         require(yieldEarned > 0, "No yield earned");
 
         lastClaimTime[poolId][msg.sender] = block.timestamp;
         ultToken.mint(msg.sender, yieldEarned);
 
         emit YieldClaimed(poolId, msg.sender, yieldEarned);
-    }
-
-    // Pool management functions
-    function closePool(uint256 poolId) external validPoolId(poolId) {
-        Pool storage pool = pools[poolId];
-        require(msg.sender == pool.creator, "Only creator");
-        require(pool.isActive, "Pool not active");
-        require(pool.currentCycle == 0, "Pool started");
-
-        pool.isActive = false;
-        emit PoolClosed(poolId, msg.sender);
-    }
-
-    // Emergency withdrawal (only for creator)
-    function emergencyWithdraw(uint256 poolId) external validPoolId(poolId) onlyOwner {
-        Pool storage pool = pools[poolId];
-        require(address(this).balance > 0, "No funds");
-
-        uint256 amount = address(this).balance;
-        pool.isActive = false;
-        payable(owner).transfer(amount);
-
-        emit EmergencyWithdrawal(poolId, msg.sender, amount);
     }
 
     // View functions
@@ -369,7 +462,10 @@ contract UnityLedger {
             poolType: pool.poolType,
             fee: pool.fee,
             totalContributions: pool.totalContributions,
-            totalPayouts: pool.totalPayouts
+            totalPayouts: pool.totalPayouts,
+            creatorRewards: pool.creatorRewards,
+            creatorJoined: pool.creatorJoined,
+            isPremium: pool.isPremium
         });
     }
 
@@ -377,12 +473,12 @@ contract UnityLedger {
         return poolMembers[poolId];
     }
 
-    function getPayoutOrder(uint256 poolId) external view validPoolId(poolId) returns (address[] memory) {
-        return pools[poolId].payoutOrder;
+    function getMemberJoinOrder(uint256 poolId) external view validPoolId(poolId) returns (address[] memory) {
+        return pools[poolId].memberJoinOrder;
     }
 
-    function getUserPools(address user) external view returns (uint256[] memory) {
-        return userPools[user];
+    function getLockedBalance(uint256 poolId, address member) external view validPoolId(poolId) returns (uint256) {
+        return pools[poolId].lockedBalances[member];
     }
 
     function canJoinPool(uint256 poolId, address user) external view validPoolId(poolId) returns (bool) {
@@ -391,8 +487,7 @@ contract UnityLedger {
                pool.currentCycle == 0 && 
                !pool.hasJoined[user] && 
                pool.totalMembers < pool.maxMembers && 
-               !isBlacklisted[user] &&
-               user != pool.creator;
+               !isBlacklisted[user];
     }
 
     function canContribute(uint256 poolId, address user) external view validPoolId(poolId) returns (bool) {
@@ -404,33 +499,28 @@ contract UnityLedger {
                !isBlacklisted[user];
     }
 
-    function hasContributedThisCycle(uint256 poolId, address user) external view validPoolId(poolId) returns (bool) {
-        return pools[poolId].hasContributed[pools[poolId].currentCycle][user];
+    function getEffectiveFeeForUser(address user) external view returns (uint256) {
+        if (address(ultToken) == address(0)) return platformFee;
+        
+        uint256 discount = ultToken.getFeeDiscount(user);
+        return platformFee * (100 - discount) / 100;
     }
 
-    function getPoolStats() external view returns (uint256 totalPools, uint256 activePools, uint256 totalMembers, uint256 totalValue) {
+    function getTotalStats() external view returns (
+        uint256 totalPools,
+        uint256 totalUltBurnedAmount,
+        uint256 totalValueLocked,
+        uint256 totalPayoutsAmount
+    ) {
         totalPools = nextPoolId;
+        totalUltBurnedAmount = totalUltBurned;
         
+        // Calculate TVL and total payouts
         for (uint256 i = 0; i < nextPoolId; i++) {
-            if (pools[i].isActive) {
-                activePools++;
-            }
-            totalMembers += pools[i].totalMembers;
-            totalValue += pools[i].totalContributions;
+            totalValueLocked += pools[i].totalContributions;
+            totalPayoutsAmount += pools[i].totalPayouts;
         }
     }
 
-    function calculateYield(uint256 poolId, address user) external view validPoolId(poolId) returns (uint256) {
-        Pool storage pool = pools[poolId];
-        if (!pool.hasJoined[user]) return 0;
-
-        uint256 lastClaim = lastClaimTime[poolId][user];
-        uint256 claimStart = lastClaim == 0 ? pool.createdAt : lastClaim;
-        uint256 timeElapsed = block.timestamp - claimStart;
-
-        return (pool.contributionAmount * pool.fee * timeElapsed) / (365 days * 100);
-    }
-
-    // Receive function
     receive() external payable {}
 }

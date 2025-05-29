@@ -1,11 +1,11 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-// src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useUnityLedgerContract } from "../services/contract";
 import { useWallet } from "../context/WalletProvider";
 import { useTheme } from "../context/ThemeProvider";
 import UltBalanceAndClaim from "../components/UltBalanceAndClaim";
+import { toast } from "react-toastify";
 import { 
   Sparkles, 
   ArrowRight, 
@@ -88,30 +88,30 @@ const Dashboard = () => {
     const activities = [
         {
             id: 1,
-            type: "deposit",
+            type: "join",
             pool: 3,
             user: "0xa1b2...c3d4",
-            amount: "500 DAI",
+            amount: "Position #3",
             time: "2 hours ago",
-            icon: _jsx(Wallet, { size: 16, className: "text-emerald-500" })
+            icon: _jsx(Users, { size: 16, className: "text-emerald-500" })
         },
         {
             id: 2,
-            type: "withdrawal",
+            type: "payout",
             pool: 1,
             user: "0x9f8e...7d6c",
-            amount: "1,200 USDC",
+            amount: "1.2 ETH",
             time: "5 hours ago",
-            icon: _jsx(DollarSign, { size: 16, className: "text-rose-500" })
+            icon: _jsx(Gift, { size: 16, className: "text-violet-500" })
         },
         {
             id: 3,
-            type: "payout",
+            type: "reward",
             pool: 2,
             user: "0xb3a2...4f5e",
-            amount: "5,000 DAI",
+            amount: "0.05 ETH",
             time: "1 day ago",
-            icon: _jsx(Gift, { size: 16, className: "text-violet-500" })
+            icon: _jsx(Star, { size: 16, className: "text-amber-500" })
         }
     ];
 
@@ -138,40 +138,74 @@ const Dashboard = () => {
         });
     };
 
-    // Get appropriate action text and style for each pool
-    const getPoolAction = (pool) => {
-        if (!account) {
-            return { text: "Connect Wallet", disabled: true, variant: "secondary" };
-        }
-        
-        if (pool.creator.toLowerCase() === account.toLowerCase()) {
-            return { text: "Manage Pool", disabled: false, variant: "primary" };
-        }
-        
-        if (pool.canJoin) {
-            return { text: "Join Pool", disabled: false, variant: "success" };
-        }
-        
-        if (pool.canContribute) {
-            return { text: "Contribute", disabled: false, variant: "primary" };
-        }
-        
-        if (pool.joined) {
-            return { text: "View Details", disabled: false, variant: "secondary" };
-        }
-        
-        if (!pool.isActive) {
-            return { text: "Inactive", disabled: true, variant: "secondary" };
-        }
-        
-        if (Number(pool.totalMembers) >= Number(pool.maxMembers)) {
-            return { text: "Pool Full", disabled: true, variant: "secondary" };
-        }
-        
-        return { text: "Started", disabled: true, variant: "secondary" };
-    };
 
-    // Enhanced button styling
+const getPoolAction = (pool) => {
+    if (!account) {
+        return { text: "Connect Wallet", disabled: true, variant: "secondary" };
+    }
+    
+    const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
+    
+    // Creator can join their own pool if not yet joined and pool hasn't started
+    if (isCreator && !pool.joined && pool.currentCycle === 0n && pool.totalMembers < pool.maxMembers) {
+        return { text: "Join Your Pool", disabled: false, variant: "success" };
+    }
+    
+    // Check if creator can contribute after joining
+    if (isCreator && pool.joined && pool.canContribute) {
+        return { text: "Contribute", disabled: false, variant: "primary" };
+    }
+    
+    // Non-creator actions
+    if (pool.canJoin) {
+        return { text: "Join Pool", disabled: false, variant: "success" };
+    }
+    
+    if (pool.canContribute) {
+        return { text: "Contribute", disabled: false, variant: "primary" };
+    }
+    
+    if (pool.joined) {
+        return { text: "View Details", disabled: false, variant: "secondary" };
+    }
+    
+    // Creator manage option (fallback)
+    if (isCreator) {
+        return { text: "Manage Pool", disabled: false, variant: "primary" };
+    }
+    
+    if (!pool.isActive) {
+        return { text: "Inactive", disabled: true, variant: "secondary" };
+    }
+    
+    if (Number(pool.totalMembers) >= Number(pool.maxMembers)) {
+        return { text: "Pool Full", disabled: true, variant: "secondary" };
+    }
+    
+    return { text: "Started", disabled: true, variant: "secondary" };
+};
+
+    // Handle pool actions
+    const handlePoolAction = async (e, pool, action) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!contract || !account) return;
+        
+        try {
+            if (action.text === "Join Your Pool" || action.text === "Join Pool") {
+                const tx = await contract.joinPool(Number(pool.id));
+                toast.info("Joining pool...");
+                await tx.wait();
+                toast.success("Successfully joined pool!");
+                // Refresh pools data
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            toast.error("Action failed: " + (error.reason || error.message));
+        }
+    };
     const getButtonClasses = (variant, disabled) => {
         const base = "w-full mt-4 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 transform";
         
@@ -192,8 +226,10 @@ const Dashboard = () => {
     // Fetch pool data with enhanced error handling and membership status
     useEffect(() => {
         if (!contract) {
-            setError("Contract not connected");
+            // Don't set error when contract is null (wallet not connected)
             setIsLoading(false);
+            setPools([]);
+            setPoolCount(0);
             return;
         }
 
@@ -247,8 +283,10 @@ const Dashboard = () => {
                             currentCycle: BigInt(poolInfo.currentCycle.toString()),
                             lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
                             isActive: poolInfo.isActive,
+                            isCompleted: poolInfo.isCompleted,
                             poolType: poolInfo.poolType,
                             fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
+                            creatorRewards: poolInfo.creatorRewards ? BigInt(poolInfo.creatorRewards.toString()) : BigInt(0),
                             joined,
                             canJoin,
                             canContribute
@@ -424,7 +462,7 @@ const Dashboard = () => {
                             title: "Total Value Locked",
                             value: stats.tvl,
                             change: "+12.6%",
-                            icon: _jsx(Target, { size: 28, className: "text-indigo-600 dark:text-indigo-400" }),
+                            icon: _jsx(DollarSign, { size: 28, className: "text-indigo-600 dark:text-indigo-400" }),
                             bg: "bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20",
                             border: "border-indigo-200 dark:border-indigo-800"
                         },
@@ -454,7 +492,6 @@ const Dashboard = () => {
                         }
                     ].map((stat, index) => 
                         _jsx(motion.div, { 
-                            key: index,
                             variants: itemVariants,
                             whileHover: { 
                                 scale: 1.05,
@@ -492,21 +529,22 @@ const Dashboard = () => {
                                     ] 
                                 })
                             ] 
-                        }, index)
+                                                                }, index)
                     )
                 }) 
             }),
 
-            // Navigation Cards Section
+// Navigation Cards Section
             _jsx(motion.section, {
                 className: "mb-12",
                 variants: containerVariants,
                 initial: "hidden",
                 animate: "visible",
                 children: _jsx("div", { 
-                    className: "grid grid-cols-1 md:grid-cols-3 gap-6", 
+                    className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", 
                     children: [
                         _jsx(Link, { 
+                            key: "pools-link",
                             to: "/pools", 
                             className: "group bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
@@ -521,6 +559,22 @@ const Dashboard = () => {
                         }),
                         
                         _jsx(Link, { 
+                            key: "member-dashboard-link",
+                            to: "/memberdashboard", 
+                            className: "group bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
+                            children: [
+                                _jsx(motion.div, {
+                                    whileHover: { scale: 1.1, rotate: -5 },
+                                    children: _jsx(Users, { size: 32, className: "mb-3" })
+                                }),
+                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Member Dashboard" }),
+                                _jsx("p", { className: "text-sm opacity-90", children: "Manage your pools and track contributions" }),
+                                _jsx(ArrowRight, { size: 16, className: "mt-2 group-hover:translate-x-1 transition-transform" })
+                            ]
+                        }),
+                        
+                        _jsx(Link, { 
+                            key: "analytics-link",
                             to: "/analytics", 
                             className: "group bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
@@ -535,6 +589,7 @@ const Dashboard = () => {
                         }),
                         
                         _jsx(Link, { 
+                            key: "leaderboard-link",
                             to: "/leaderboard", 
                             className: "group bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
@@ -546,7 +601,8 @@ const Dashboard = () => {
                                 _jsx("p", { className: "text-sm opacity-90", children: "Top performers and achievements" }),
                                 _jsx(ArrowRight, { size: 16, className: "mt-2 group-hover:translate-x-1 transition-transform" })
                             ]
-                        })
+                        }),
+                        
                     ] 
                 })
             }),
@@ -686,6 +742,19 @@ const Dashboard = () => {
                                     const contributionUSD = parseFloat(contributionEth) * 1600;
                                     const action = getPoolAction(pool);
                                     const completionPercentage = (Number(pool.totalMembers) / Number(pool.maxMembers)) * 100;
+                                    const isCreator = account && pool.creator.toLowerCase() === account.toLowerCase();
+                                    const creatorRewardsEth = pool.creatorRewards ? ethers.formatEther(pool.creatorRewards.toString()) : "0";
+
+                                    // Debug contribute issue
+                                    if (isCreator) {
+                                        console.log('Creator pool debug:', {
+                                            poolId: poolIdStr,
+                                            joined: pool.joined,
+                                            canContribute: pool.canContribute,
+                                            currentCycle: pool.currentCycle.toString(),
+                                            action: action.text
+                                        });
+                                    }
 
                                     return _jsx(motion.div, {
                                         variants: itemVariants,
@@ -722,6 +791,13 @@ const Dashboard = () => {
                                                                                         children: [
                                                                                             _jsx(Star, { size: 10, className: "mr-1" }),
                                                                                             "Joined"
+                                                                                        ] 
+                                                                                    }),
+                                                                                    isCreator && _jsxs("span", { 
+                                                                                        className: "inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-100 to-amber-200 dark:from-amber-900/50 dark:to-amber-800/50 text-amber-800 dark:text-amber-300", 
+                                                                                        children: [
+                                                                                            _jsx(Award, { size: 10, className: "mr-1" }),
+                                                                                            "Creator"
                                                                                         ] 
                                                                                     })
                                                                                 ] 
@@ -819,6 +895,43 @@ const Dashboard = () => {
                                                                     })
                                                                 ] 
                                                             }),
+
+                                                            // Creator Rewards Section
+                                                            isCreator && parseFloat(creatorRewardsEth) > 0 && _jsx("div", { 
+                                                                className: "mb-4 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl border border-amber-200 dark:border-amber-800", 
+                                                                children: _jsxs("div", { 
+                                                                    className: "flex justify-between items-center", 
+                                                                    children: [
+                                                                        _jsxs("div", { 
+                                                                            children: [
+                                                                                _jsx("p", { className: "text-xs text-amber-600 dark:text-amber-400 font-medium", children: "Creator Rewards" }),
+                                                                                _jsxs("p", { 
+                                                                                    className: "text-sm font-bold text-amber-700 dark:text-amber-300", 
+                                                                                    children: [creatorRewardsEth, " ETH"] 
+                                                                                })
+                                                                            ] 
+                                                                        }),
+                                                                        _jsx(Gift, { size: 16, className: "text-amber-500" })
+                                                                    ] 
+                                                                }) 
+                                                            }),
+
+                                                            // Locked Balance Section  
+                                                            pool.joined && !isCreator && _jsx("div", { 
+                                                                className: "mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800", 
+                                                                children: _jsxs("div", { 
+                                                                    className: "flex justify-between items-center", 
+                                                                    children: [
+                                                                        _jsxs("div", { 
+                                                                            children: [
+                                                                                _jsx("p", { className: "text-xs text-blue-600 dark:text-blue-400 font-medium", children: "Locked Balance" }),
+                                                                                _jsx("p", { className: "text-sm font-bold text-blue-700 dark:text-blue-300", children: "Calculating..." })
+                                                                            ] 
+                                                                        }),
+                                                                        _jsx(Shield, { size: 16, className: "text-blue-500" })
+                                                                    ] 
+                                                                }) 
+                                                            }),
                                                             
                                                             // Status badges
                                                             _jsxs("div", { 
@@ -835,6 +948,10 @@ const Dashboard = () => {
                                                                                 : "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300"
                                                                         }`, 
                                                                         children: pool.isActive ? "Active" : "Inactive" 
+                                                                    }),
+                                                                    pool.isCompleted && _jsx("span", { 
+                                                                        className: "px-3 py-1 rounded-lg text-xs font-bold bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300", 
+                                                                        children: "Completed" 
                                                                     })
                                                                 ] 
                                                             }),
@@ -846,7 +963,19 @@ const Dashboard = () => {
                                                                     children: _jsx(UltBalanceAndClaim, { poolId: poolIdStr }) 
                                                                 }),
 
+                                                            // Creator Manage Button (only when no other action available)
+                                                            isCreator && !pool.canContribute && !pool.canJoin && _jsx("div", { 
+                                                                className: "mb-2", 
+                                                                children: _jsx(motion.button, {
+                                                                    whileHover: { scale: 1.02 },
+                                                                    whileTap: { scale: 0.98 },
+                                                                    className: "w-full py-2 px-4 rounded-lg font-medium text-sm bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg transition-all duration-200",
+                                                                    children: "Manage Pool"
+                                                                })
+                                                            }),
+
                                                             _jsx(motion.button, {
+                                                                onClick: (e) => handlePoolAction(e, pool, action),
                                                                 whileHover: !action.disabled ? { scale: 1.02 } : {},
                                                                 whileTap: !action.disabled ? { scale: 0.98 } : {},
                                                                 className: getButtonClasses(action.variant, action.disabled),
@@ -897,6 +1026,7 @@ const Dashboard = () => {
                             className: "divide-y divide-gray-100 dark:divide-gray-700", 
                             children: activities.map((activity) => 
                                 _jsx(motion.li, {
+                                    key: activity.id,
                                     whileHover: {
                                         backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                                         scale: 1.01
@@ -917,9 +1047,9 @@ const Dashboard = () => {
                                                             _jsxs("p", { 
                                                                 className: "text-sm font-semibold text-gray-900 dark:text-white", 
                                                                 children: [
-                                                                    activity.type === "deposit" && "Deposit to",
-                                                                    activity.type === "withdrawal" && "Withdrawal from",
+                                                                    activity.type === "join" && "Joined",
                                                                     activity.type === "payout" && "Payout from",
+                                                                    activity.type === "reward" && "Creator reward from",
                                                                     " ",
                                                                     _jsxs("span", { 
                                                                         className: "text-indigo-600 dark:text-indigo-400 font-bold", 

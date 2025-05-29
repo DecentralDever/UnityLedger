@@ -28,12 +28,15 @@ const Layout = ({ children }) => {
     const navItems = [
         { to: "/", label: "Dashboard" },
         { to: "/join-create", label: "Create Pool" },
+        { to: "/stake", label: "Stake ULT" },
+        { to: "/faucet", label: "Faucet" },
     ];
     // Dropdown items
     const dropdownItems = [
         { to: "/pools", label: "All Pools" },
         { to: "/analytics", label: "Analytics" },
         { to: "/leaderboard", label: "Leaderboard" },
+        // { to: "/swap", label: "Swap/Mint" },
     ];
     // Social links
     const socialLinks = [

@@ -4,6 +4,7 @@ import { ethers } from 'ethers'
 import { useWallet } from '../context/WalletProvider'
 import ledgerAbi from '../abis/UnityLedgerABI.json'
 import tokenAbi from '../abis/ULTTokenABI.json'
+import faucetABI from '../abis/ULTFaucetAbi.json'
 
 // Pick the right deployment by chainId
 const LEDGER_ADDRESS_MAP = {

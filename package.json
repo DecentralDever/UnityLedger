@@ -5,7 +5,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "deploy:lisk": "npx hardhat run scripts/deploy.ts --network lisk-sepolia",
+    "deploy:somnia": "npx hardhat run scripts/deploy.ts --network somnia",
+    "deploy:lisktoken": "npx hardhat run scripts/deploy-ult.ts --network lisk-sepolia",
+    "deploy:somniatoken": "npx hardhat run scripts/deploy-ult.ts --network somnia",
+    "test:integration:lisk": "hardhat run scripts/test-integration.js --network lisk-sepolia",
+    "test:integration:somnia": "hardhat run scripts/test-integration.js --network somnia",
+    "configure:lisk": "hardhat run scripts/configure-ult.js --network lisk-sepolia",
+    "configure:somnia": "hardhat run scripts/configure-ult.js --network somnia"
   },
   "keywords": [],
   "author": "",
@@ -45,6 +53,10 @@
     "test": "test"
   },
   "dependencies": {
+    "@uniswap/universal-router": "^2.0.0",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "@uniswap/v4-periphery": "^1.0.2",
+    "erc-20-abi": "^1.0.1",
     "react-router-dom": "^6.30.0"
   }
 }

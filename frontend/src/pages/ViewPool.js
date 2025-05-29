@@ -143,59 +143,74 @@ const ViewPool = () => {
         }
     };
 
-    const getActionButton = () => {
-        if (!account) {
-            return {
-                text: "Connect Wallet",
-                handler: () => toast.info("Please connect your wallet"),
-                disabled: true,
-                variant: "secondary"
-            };
-        }
-
-        if (pool.creator.toLowerCase() === account.toLowerCase()) {
-            return {
-                text: "Pool Creator",
-                handler: () => {},
-                disabled: true,
-                variant: "creator"
-            };
-        }
-
-        if (canJoin) {
-            return {
-                text: "Join Pool",
-                handler: handleJoinPool,
-                disabled: actionLoading,
-                variant: "success"
-            };
-        }
-
-        if (canContribute) {
-            return {
-                text: "Contribute",
-                handler: handleContribute,
-                disabled: actionLoading,
-                variant: "primary"
-            };
-        }
-
-        if (isMember) {
-            return {
-                text: "Pool Member",
-                handler: () => {},
-                disabled: true,
-                variant: "member"
-            };
-        }
-
+   // Updated getActionButton function for ViewPool.tsx
+const getActionButton = () => {
+    if (!account) {
         return {
-            text: "Not Available",
-            handler: () => {},
+            text: "Connect Wallet",
+            handler: () => toast.info("Please connect your wallet"),
             disabled: true,
             variant: "secondary"
         };
+    }
+
+    const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
+
+    // Allow creator to contribute if they've joined and can contribute
+    if (isCreator && isMember && canContribute) {
+        return {
+            text: "Contribute",
+            handler: handleContribute,
+            disabled: actionLoading,
+            variant: "primary"
+        };
+    }
+
+    // Non-creator actions
+    if (canJoin) {
+        return {
+            text: "Join Pool",
+            handler: handleJoinPool,
+            disabled: actionLoading,
+            variant: "success"
+        };
+    }
+
+    if (canContribute && !isCreator) {
+        return {
+            text: "Contribute",
+            handler: handleContribute,
+            disabled: actionLoading,
+            variant: "primary"
+        };
+    }
+
+    if (isMember) {
+        return {
+            text: "Pool Member",
+            handler: () => {},
+            disabled: true,
+            variant: "member"
+        };
+    }
+
+    // Creator fallback
+    if (isCreator) {
+        return {
+            text: "Pool Creator",
+            handler: () => {},
+            disabled: true,
+            variant: "creator"
+        };
+    }
+
+    return {
+        text: "Not Available",
+        handler: () => {},
+        disabled: true,
+        variant: "secondary"
     };
+};
 
     const getButtonClasses = (variant, disabled) => {
         const base = "w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200";
