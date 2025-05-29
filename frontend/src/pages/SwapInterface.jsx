@@ -13,8 +13,7 @@ import { useWallet } from '../context/WalletProvider';
 import { toast } from 'react-toastify';
 
 //import ERC20_ABI from 'erc-20-abi';
-import UNIVERSAL_ROUTER_ABI
-  from '@uniswap/universal-router/artifacts/contracts/UniversalRouter.sol/UniversalRouter.json';
+import UNIVERSAL_ROUTER_ABI from '../abis/UniversalRouter.json';
 
 // Universal Router V4 address (Unichain)
 const UNIVERSAL_ROUTER_ADDRESS = '0xf70536b3bcc1bd1a972dc186a2cf84cc6da6be5d';
