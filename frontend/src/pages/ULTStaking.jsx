@@ -19,31 +19,17 @@ import {
 const ULTStaking = () => {
   const { account } = useWallet();
   
-  // Network addresses state
-  const [ultTokenAddress, setUltTokenAddress] = useState(null);
-  
-  // Get network addresses based on chainId
-  const getNetworkAddresses = async () => {
-    if (!window.ethereum) return null;
-    
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      
-      if (chainId === 50311) { // Somnia Devnet
-        return '0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5';
-      } else if (chainId === 4202) { // Lisk Sepolia
-        return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
-      } else {
-        console.warn('Unknown network, defaulting to Lisk Sepolia');
-        return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
-      }
-    } catch (error) {
-      console.error('Error detecting network:', error);
-      return '0xCaB2f442dBaa702593d915dc1dD5333943081C37';
-    }
+  // Network addresses
+  const getNetworkAddresses = () => {
+    const isMainnet = window.location.hostname === 'your-production-domain.com';
+    return {
+      ultToken: isMainnet 
+        ? "0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5" // Somnia
+        : "0xCaB2f442dBaa702593d915dc1dD5333943081C37"  // Lisk
+    };
   };
+
+  const { ultToken: ULT_TOKEN_ADDRESS } = getNetworkAddresses();
 
   // States
   const [ultBalance, setUltBalance] = useState('0');
@@ -77,26 +63,17 @@ const ULTStaking = () => {
     "function stakingRewardRate() view returns (uint256)"
   ];
 
-  // Initialize network address
-  useEffect(() => {
-    const initAddress = async () => {
-      const address = await getNetworkAddresses();
-      setUltTokenAddress(address);
-    };
-    initAddress();
-  }, []);
-
   // Get ULT contract
   const getULTContract = async () => {
-    if (!window.ethereum || !ultTokenAddress) return null;
+    if (!window.ethereum) return null;
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    return new ethers.Contract(ultTokenAddress, ULT_ABI, signer);
+    return new ethers.Contract(ULT_TOKEN_ADDRESS, ULT_ABI, signer);
   };
 
   // Load staking data
   const loadStakingData = async () => {
-    if (!account || !ultTokenAddress) {
+    if (!account) {
       setIsLoading(false);
       return;
     }
@@ -106,32 +83,33 @@ const ULTStaking = () => {
       const ultContract = await getULTContract();
       if (!ultContract) return;
 
-      // ULT balance
+      // Get balances
       const balance = await ultContract.balanceOf(account);
       setUltBalance(ethers.formatEther(balance));
 
-      // Staked info
+      // Get staking info
       const stakeInfo = await ultContract.getStakeInfo(account);
-      setStakedAmount(ethers.formatEther(stakeInfo.amount || stakeInfo[0]));
+      setStakedAmount(ethers.formatEther(stakeInfo[0])); // amount
 
-      // Pending rewards
+      // Get pending rewards
       const pending = await ultContract.getPendingRewards(account);
       setPendingRewards(ethers.formatEther(pending));
 
-      // Fee discount
+      // Get fee discount
       const discount = await ultContract.getFeeDiscount(account);
       setFeeDiscount(discount.toString());
 
-      // Voting power
+      // Get voting power
       const power = await ultContract.votingPower(account);
       setVotingPower(ethers.formatEther(power));
 
-      // APY
+      // Get staking APY
       const apy = await ultContract.stakingRewardRate();
       setStakingAPY((Number(apy) / 100).toString());
+
     } catch (error) {
-      console.error('Error loading staking data:', error);
-      toast.error('Failed to load staking data');
+      console.error("Error loading staking data:", error);
+      toast.error("Failed to load staking data");
     } finally {
       setIsLoading(false);
     }
@@ -156,9 +134,14 @@ const ULTStaking = () => {
 
       const amount = ethers.parseEther(stakeAmount);
       
-      // For self-staking, we don't need to check allowance
-      // The contract stakes its own tokens
-      
+      // Check allowance
+      const allowance = await ultContract.allowance(account, ULT_TOKEN_ADDRESS);
+      if (allowance < amount) {
+        toast.info("Approving ULT for staking...");
+        const approveTx = await ultContract.approve(ULT_TOKEN_ADDRESS, ethers.parseEther("10000"));
+        await approveTx.wait();
+      }
+
       const tx = await ultContract.stake(amount);
       toast.info("Staking tokens...");
       await tx.wait();
@@ -237,20 +220,16 @@ const ULTStaking = () => {
   };
 
   useEffect(() => {
-    if (ultTokenAddress && account) {
-      loadStakingData();
-    }
-  }, [account, ultTokenAddress]);
+    loadStakingData();
+  }, [account]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    if (ultTokenAddress && account) {
-      const interval = setInterval(loadStakingData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [account, ultTokenAddress]);
+    const interval = setInterval(loadStakingData, 30000);
+    return () => clearInterval(interval);
+  }, [account]);
 
-  if (isLoading || !ultTokenAddress) {
+  if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6 flex justify-center items-center min-h-[400px]">
         <div className="text-center">
