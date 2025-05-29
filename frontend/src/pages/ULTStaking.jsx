@@ -72,11 +72,11 @@ const ULTStaking = () => {
   // Get ULT contract
   const getULTContract = async () => {
     if (!window.ethereum) return null;
+    const { ultToken } = await getNetworkAddresses();
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    return new ethers.Contract(ULT_TOKEN_ADDRESS, ULT_ABI, signer);
+    return new ethers.Contract(ultToken, ULT_ABI, signer);
   };
-
   // Load staking data
   const loadStakingData = async () => {
     if (!account) {
@@ -89,33 +89,32 @@ const ULTStaking = () => {
       const ultContract = await getULTContract();
       if (!ultContract) return;
 
-      // Get balances
+      // ULT balance
       const balance = await ultContract.balanceOf(account);
       setUltBalance(ethers.formatEther(balance));
 
-      // Get staking info
+      // Staked info
       const stakeInfo = await ultContract.getStakeInfo(account);
-      setStakedAmount(ethers.formatEther(stakeInfo[0])); // amount
+      setStakedAmount(ethers.formatEther(stakeInfo.amount || stakeInfo[0]));
 
-      // Get pending rewards
+      // Pending rewards
       const pending = await ultContract.getPendingRewards(account);
       setPendingRewards(ethers.formatEther(pending));
 
-      // Get fee discount
+      // Fee discount
       const discount = await ultContract.getFeeDiscount(account);
       setFeeDiscount(discount.toString());
 
-      // Get voting power
+      // Voting power
       const power = await ultContract.votingPower(account);
       setVotingPower(ethers.formatEther(power));
 
-      // Get staking APY
+      // APY
       const apy = await ultContract.stakingRewardRate();
       setStakingAPY((Number(apy) / 100).toString());
-
     } catch (error) {
-      console.error("Error loading staking data:", error);
-      toast.error("Failed to load staking data");
+      console.error('Error loading staking data:', error);
+      toast.error('Failed to load staking data');
     } finally {
       setIsLoading(false);
     }
