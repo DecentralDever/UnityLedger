@@ -13,7 +13,7 @@ import AllPools from "./pages/Allpools";
 import Analytics from "./pages/Analytics";
 import Leaderboard from "./pages/Leaderboard";
 import MemberDashboard from "./pages/MemberDashboard";
-import SwapInterface from "./pages/SwapInterface.jsx";
+//import SwapInterface from "./pages/SwapInterface.jsx";
 import ULTFaucet from "./pages/ULTFaucet";
 import ULTStaking from "./pages/ULTStaking.jsx";
 
@@ -35,7 +35,7 @@ const App = () => {
                                 _jsx(Route, { path: "/privacy", element: _jsx("div", { children: "Privacy Policy" }) }),
                                 _jsx(Route, { path: "/terms", element: _jsx("div", { children: "Terms of Service" }) }),
                                 _jsx(Route, { path: "/memberdashboard", element: _jsx(MemberDashboard, {}) }),
-                                _jsx(Route, { path: "/swap", element: _jsx(SwapInterface, {}) }),
+                                //_jsx(Route, { path: "/swap", element: _jsx(SwapInterface, {}) }),
                                 _jsx(Route, { path: "/faucet", element: _jsx(ULTFaucet, {}) }),
                                 _jsx(Route, { path: "/stake", element: _jsx(ULTStaking, {}) }),
                                 _jsx(Route, { path: "*", element: _jsx("div", { children: "Page Not Found" }) })
