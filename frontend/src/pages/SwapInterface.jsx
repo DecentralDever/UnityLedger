@@ -12,7 +12,7 @@ import {
 import { useWallet } from '../context/WalletProvider';
 import { toast } from 'react-toastify';
 
-import ERC20_ABI from 'erc-20-abi';
+//import ERC20_ABI from 'erc-20-abi';
 import UNIVERSAL_ROUTER_ABI
   from '@uniswap/universal-router/artifacts/contracts/UniversalRouter.sol/UniversalRouter.json';
 
