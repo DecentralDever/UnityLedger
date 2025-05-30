@@ -18,7 +18,7 @@ const ULTFaucet = () => {
       
       // Somnia Devnet chainId: 50311
       // Lisk Sepolia chainId: 4202
-      if (chainId === 50311) {
+      if (chainId === 50312) {
         console.log("Connected to Somnia network");
         return {
           faucet: "0xBdc416E82FF7eD6d06be6028fd442e94538F42b9",

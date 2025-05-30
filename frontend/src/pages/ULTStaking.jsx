@@ -30,7 +30,7 @@ const ULTStaking = () => {
       
       // Somnia Devnet chainId: 50311
       // Lisk Sepolia chainId: 4202
-      if (chainId === 50311) {
+      if (chainId === 50312) {
         console.log("Connected to Somnia network");
         return {
           ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"

@@ -54,7 +54,7 @@ const Dashboard = () => {
             const network = await provider.getNetwork();
             const chainId = Number(network.chainId);
             
-            if (chainId === 50311) {
+            if (chainId === 50312) {
                 return {
                     ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
                 };

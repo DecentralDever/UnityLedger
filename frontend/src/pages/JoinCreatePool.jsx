@@ -21,7 +21,7 @@ const JoinCreatePool = () => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
-      if (chainId === 50311) {
+      if (chainId === 50312) {
         console.log("Connected to Somnia network");
         return {
           unityLedger: "0xC2E82087CEce1850ba3F10926Ff56f558B7E6Ad0",
