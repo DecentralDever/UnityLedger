@@ -20,16 +20,43 @@ const ULTStaking = () => {
   const { account } = useWallet();
   
   // Network addresses
-  const getNetworkAddresses = () => {
-    const isMainnet = window.location.hostname === 'your-production-domain.com';
-    return {
-      ultToken: isMainnet 
-        ? "0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5" // Somnia
-        : "0xCaB2f442dBaa702593d915dc1dD5333943081C37"  // Lisk
-    };
+  const getNetworkAddresses = async () => {
+    if (!window.ethereum) return null;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      
+      // Somnia Devnet chainId: 50311
+      // Lisk Sepolia chainId: 4202
+      if (chainId === 50311) {
+        console.log("Connected to Somnia network");
+        return {
+          ultToken: "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
+        };
+      } else if (chainId === 4202) {
+        console.log("Connected to Lisk Sepolia network");
+        return {
+          ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+        };
+      } else {
+        console.warn("Unknown network, defaulting to Lisk Sepolia");
+        return {
+          ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+        };
+      }
+    } catch (error) {
+      console.error("Error detecting network:", error);
+      // Default to Lisk Sepolia
+      return {
+        ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+      };
+    }
   };
 
-  const { ultToken: ULT_TOKEN_ADDRESS } = getNetworkAddresses();
+  // States
+  const [addresses, setAddresses] = useState(null);
 
   // States
   const [ultBalance, setUltBalance] = useState('0');
@@ -48,7 +75,7 @@ const ULTStaking = () => {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Contract ABI
+  // Contract ABI - Updated with approve function
   const ULT_ABI = [
     "function balanceOf(address) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
@@ -60,20 +87,22 @@ const ULTStaking = () => {
     "function getPendingRewards(address) view returns (uint256)",
     "function getFeeDiscount(address) view returns (uint256)",
     "function votingPower(address) view returns (uint256)",
-    "function stakingRewardRate() view returns (uint256)"
+    "function stakingRewardRate() view returns (uint256)",
+    "function totalSupply() view returns (uint256)",
+    "function totalStaked() view returns (uint256)"
   ];
 
   // Get ULT contract
   const getULTContract = async () => {
-    if (!window.ethereum) return null;
+    if (!window.ethereum || !addresses) return null;
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    return new ethers.Contract(ULT_TOKEN_ADDRESS, ULT_ABI, signer);
+    return new ethers.Contract(addresses.ultToken, ULT_ABI, signer);
   };
 
   // Load staking data
   const loadStakingData = async () => {
-    if (!account) {
+    if (!account || !addresses) {
       setIsLoading(false);
       return;
     }
@@ -82,6 +111,8 @@ const ULTStaking = () => {
       setIsLoading(true);
       const ultContract = await getULTContract();
       if (!ultContract) return;
+
+      console.log("Loading data from contract:", addresses.ultToken);
 
       // Get balances
       const balance = await ultContract.balanceOf(account);
@@ -115,7 +146,7 @@ const ULTStaking = () => {
     }
   };
 
-  // Stake tokens
+  // Handle staking - always claim rewards first if existing stake
   const handleStake = async () => {
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
       toast.error("Please enter a valid amount");
@@ -132,16 +163,23 @@ const ULTStaking = () => {
       const ultContract = await getULTContract();
       if (!ultContract) return;
 
-      const amount = ethers.parseEther(stakeAmount);
+      // ALWAYS claim rewards first if there's an existing stake to avoid reentrancy conflict
+      const existingStake = await ultContract.getStakeInfo(account);
+      const currentStaked = ethers.formatEther(existingStake[0]);
       
-      // Check allowance
-      const allowance = await ultContract.allowance(account, ULT_TOKEN_ADDRESS);
-      if (allowance < amount) {
-        toast.info("Approving ULT for staking...");
-        const approveTx = await ultContract.approve(ULT_TOKEN_ADDRESS, ethers.parseEther("10000"));
-        await approveTx.wait();
+      if (parseFloat(currentStaked) > 0) {
+        toast.info("Existing stake detected. Claiming rewards first to avoid contract conflict...");
+        try {
+          const claimTx = await ultContract.claimStakingRewards();
+          await claimTx.wait();
+          toast.success("Rewards claimed successfully!");
+        } catch (claimError) {
+          toast.error("Must claim existing rewards first. Use 'Claim Rewards' button, then try staking again.");
+          return;
+        }
       }
 
+      const amount = ethers.parseEther(stakeAmount);
       const tx = await ultContract.stake(amount);
       toast.info("Staking tokens...");
       await tx.wait();
@@ -152,13 +190,18 @@ const ULTStaking = () => {
 
     } catch (error) {
       console.error("Error staking:", error);
-      toast.error("Failed to stake tokens");
+      
+      if (error.data === "0x3ee5aeb5") {
+        toast.error("Contract conflict detected. Please claim any pending rewards first, then try staking again.");
+      } else {
+        toast.error("Staking failed. If you have existing stakes, claim rewards first.");
+      }
     } finally {
       setIsStaking(false);
     }
   };
 
-  // Unstake tokens
+  // Unstake tokens - Added missing function
   const handleUnstake = async () => {
     if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) {
       toast.error("Please enter a valid amount");
@@ -186,7 +229,11 @@ const ULTStaking = () => {
 
     } catch (error) {
       console.error("Error unstaking:", error);
-      toast.error("Failed to unstake tokens");
+      if (error.message.includes("Insufficient staked")) {
+        toast.error("Insufficient staked balance");
+      } else {
+        toast.error("Failed to unstake tokens");
+      }
     } finally {
       setIsUnstaking(false);
     }
@@ -219,9 +266,20 @@ const ULTStaking = () => {
     }
   };
 
+  // Initialize addresses
   useEffect(() => {
-    loadStakingData();
-  }, [account]);
+    const initAddresses = async () => {
+      const networkAddresses = await getNetworkAddresses();
+      setAddresses(networkAddresses);
+    };
+    initAddresses();
+  }, []);
+
+  useEffect(() => {
+    if (addresses && account) {
+      loadStakingData();
+    }
+  }, [account, addresses]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -229,7 +287,7 @@ const ULTStaking = () => {
     return () => clearInterval(interval);
   }, [account]);
 
-  if (isLoading) {
+  if (isLoading || !addresses) {
     return (
       <div className="max-w-6xl mx-auto p-6 flex justify-center items-center min-h-[400px]">
         <div className="text-center">

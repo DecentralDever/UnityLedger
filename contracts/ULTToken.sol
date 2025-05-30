@@ -60,14 +60,31 @@ contract ULTToken is ERC20, Ownable, ReentrancyGuard {
         emit TokensBurned(amount, address(this));
     }
     
+    // Internal function to claim rewards (no reentrancy guard)
+    function _claimStakingRewards(address user) internal returns (uint256) {
+        StakeInfo storage stakeInfo = stakes[user];
+        if (stakeInfo.amount == 0) return 0;
+        
+        uint256 timeStaked = block.timestamp - stakeInfo.lastClaimTime;
+        uint256 rewards = (stakeInfo.amount * stakeInfo.rewardRate * timeStaked) / (365 days * 10000);
+        
+        if (rewards > 0 && totalSupply() + rewards <= MAX_SUPPLY) {
+            _mint(user, rewards);
+            stakeInfo.lastClaimTime = block.timestamp;
+            emit StakingRewardsClaimed(user, rewards);
+            return rewards;
+        }
+        return 0;
+    }
+    
     // Staking functions
     function stake(uint256 amount) external nonReentrant {
         require(amount > 0, "Amount must be > 0");
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
         
-        // Claim existing rewards first
+        // Claim existing rewards first using internal function
         if (stakes[msg.sender].amount > 0) {
-            claimStakingRewards();
+            _claimStakingRewards(msg.sender);
         }
         
         _transfer(msg.sender, address(this), amount);
@@ -91,8 +108,8 @@ contract ULTToken is ERC20, Ownable, ReentrancyGuard {
     function unstake(uint256 amount) external nonReentrant {
         require(stakes[msg.sender].amount >= amount, "Insufficient staked");
         
-        // Claim rewards before unstaking
-        claimStakingRewards();
+        // Claim rewards before unstaking using internal function
+        _claimStakingRewards(msg.sender);
         
         stakes[msg.sender].amount -= amount;
         totalStaked -= amount;
@@ -107,17 +124,8 @@ contract ULTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     function claimStakingRewards() public nonReentrant {
-        StakeInfo storage stakeInfo = stakes[msg.sender];
-        require(stakeInfo.amount > 0, "No stake found");
-        
-        uint256 timeStaked = block.timestamp - stakeInfo.lastClaimTime;
-        uint256 rewards = (stakeInfo.amount * stakeInfo.rewardRate * timeStaked) / (365 days * 10000);
-        
-        if (rewards > 0 && totalSupply() + rewards <= MAX_SUPPLY) {
-            _mint(msg.sender, rewards);
-            stakeInfo.lastClaimTime = block.timestamp;
-            emit StakingRewardsClaimed(msg.sender, rewards);
-        }
+        uint256 rewards = _claimStakingRewards(msg.sender);
+        require(rewards > 0, "No rewards to claim");
     }
     
     // Internal functions

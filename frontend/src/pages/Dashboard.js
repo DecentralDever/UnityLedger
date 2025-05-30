@@ -23,7 +23,10 @@ import {
   Star,
   Zap,
   Target,
-  Award
+  Award,
+  Coins,
+  TrendingDown,
+  RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ethers } from "ethers";
@@ -36,14 +39,59 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [pools, setPools] = useState([]);
     const [error, setError] = useState(null);
+    const [activities, setActivities] = useState([]);
+    const [activitiesLoading, setActivitiesLoading] = useState(true);
+    const [addresses, setAddresses] = useState(null);
+    const [ultBalance, setUltBalance] = useState('0');
+    const [ultPrice, setUltPrice] = useState('0.05'); // Mock price
 
-    // Calculate stats from actual pool data
-    const [stats, setStats] = useState({
-        tvl: "$0",
-        activePools: "0",
-        totalMembers: "0",
-        avgYield: "0%"
-    });
+    // Network detection
+    const getNetworkAddresses = async () => {
+        if (!window.ethereum) return null;
+        
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const network = await provider.getNetwork();
+            const chainId = Number(network.chainId);
+            
+            if (chainId === 50311) {
+                return {
+                    ultToken: "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
+                };
+            } else if (chainId === 4202) {
+                return {
+                    ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+                };
+            } else {
+                return {
+                    ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+                };
+            }
+        } catch (error) {
+            return {
+                ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+            };
+        }
+    };
+
+    const ULT_ABI = [
+        "function balanceOf(address) external view returns (uint256)"
+    ];
+
+    const getULTContract = async () => {
+        if (!window.ethereum || !addresses) return null;
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        return new ethers.Contract(addresses.ultToken, ULT_ABI, provider);
+    };
+
+    // Initialize addresses
+    useEffect(() => {
+        const initAddresses = async () => {
+            const networkAddresses = await getNetworkAddresses();
+            setAddresses(networkAddresses);
+        };
+        initAddresses();
+    }, []);
 
     // Enhanced animation variants
     const containerVariants = {
@@ -84,36 +132,137 @@ const Dashboard = () => {
         }
     };
 
-    // Enhanced recent activities
-    const activities = [
-        {
-            id: 1,
-            type: "join",
-            pool: 3,
-            user: "0xa1b2...c3d4",
-            amount: "Position #3",
-            time: "2 hours ago",
-            icon: _jsx(Users, { size: 16, className: "text-emerald-500" })
-        },
-        {
-            id: 2,
-            type: "payout",
-            pool: 1,
-            user: "0x9f8e...7d6c",
-            amount: "1.2 ETH",
-            time: "5 hours ago",
-            icon: _jsx(Gift, { size: 16, className: "text-violet-500" })
-        },
-        {
-            id: 3,
-            type: "reward",
-            pool: 2,
-            user: "0xb3a2...4f5e",
-            amount: "0.05 ETH",
-            time: "1 day ago",
-            icon: _jsx(Star, { size: 16, className: "text-amber-500" })
+    // Calculate stats from actual pool data
+    const [stats, setStats] = useState({
+        tvl: "$0",
+        activePools: "0",
+        totalMembers: "0",
+        avgYield: "0%",
+        ultMarketCap: "$0"
+    });
+
+    // Fetch ULT balance
+    const fetchULTBalance = async () => {
+        if (!account || !addresses) return;
+        
+        try {
+            const ultContract = await getULTContract();
+            if (!ultContract) return;
+
+            const balance = await ultContract.balanceOf(account);
+            setUltBalance(ethers.formatEther(balance));
+        } catch (error) {
+            console.error("Error fetching ULT balance:", error);
         }
-    ];
+    };
+
+    // Fetch real activity from blockchain events
+    const fetchRecentActivity = async () => {
+        if (!contract) return;
+        
+        setActivitiesLoading(true);
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const currentBlock = await provider.getBlockNumber();
+            const fromBlock = Math.max(0, currentBlock - 1000); // Last ~1000 blocks
+
+            // Get recent events
+            const joinEvents = await contract.queryFilter(
+                contract.filters.JoinedPool(),
+                fromBlock,
+                currentBlock
+            );
+
+            const payoutEvents = await contract.queryFilter(
+                contract.filters.PayoutSent(),
+                fromBlock,
+                currentBlock
+            );
+
+            const rewardEvents = await contract.queryFilter(
+                contract.filters.CreatorRewardEarned(),
+                fromBlock,
+                currentBlock
+            );
+
+            // Combine and sort events by block number
+            const allEvents = [
+                ...joinEvents.map(e => ({
+                    type: 'join',
+                    poolId: e.args.poolId.toString(),
+                    user: e.args.member,
+                    blockNumber: e.blockNumber,
+                    transactionHash: e.transactionHash,
+                    amount: null
+                })),
+                ...payoutEvents.map(e => ({
+                    type: 'payout',
+                    poolId: e.args.poolId.toString(),
+                    user: e.args.recipient,
+                    blockNumber: e.blockNumber,
+                    transactionHash: e.transactionHash,
+                    amount: ethers.formatEther(e.args.amount)
+                })),
+                ...rewardEvents.map(e => ({
+                    type: 'reward',
+                    poolId: e.args.poolId.toString(),
+                    user: e.args.creator,
+                    blockNumber: e.blockNumber,
+                    transactionHash: e.transactionHash,
+                    amount: ethers.formatEther(e.args.amount)
+                }))
+            ].sort((a, b) => b.blockNumber - a.blockNumber).slice(0, 10);
+
+            // Get timestamps for recent events
+            const activitiesWithTime = await Promise.all(
+                allEvents.map(async (event) => {
+                    try {
+                        const block = await provider.getBlock(event.blockNumber);
+                        const timeAgo = Math.floor((Date.now() - block.timestamp * 1000) / 1000);
+                        
+                        let timeString = "";
+                        if (timeAgo < 60) timeString = "Just now";
+                        else if (timeAgo < 3600) timeString = `${Math.floor(timeAgo / 60)}m ago`;
+                        else if (timeAgo < 86400) timeString = `${Math.floor(timeAgo / 3600)}h ago`;
+                        else timeString = `${Math.floor(timeAgo / 86400)}d ago`;
+
+                        return {
+                            ...event,
+                            time: timeString,
+                            timestamp: block.timestamp,
+                            icon: getActivityIcon(event.type)
+                        };
+                    } catch (err) {
+                        return {
+                            ...event,
+                            time: "Unknown",
+                            timestamp: 0,
+                            icon: getActivityIcon(event.type)
+                        };
+                    }
+                })
+            );
+
+            setActivities(activitiesWithTime);
+        } catch (error) {
+            console.error("Error fetching activities:", error);
+            setActivities([]); // Fallback to empty array
+        }
+        setActivitiesLoading(false);
+    };
+
+    const getActivityIcon = (type) => {
+        switch (type) {
+            case 'join':
+                return _jsx(Users, { size: 16, className: "text-emerald-500" });
+            case 'payout':
+                return _jsx(Gift, { size: 16, className: "text-violet-500" });
+            case 'reward':
+                return _jsx(Star, { size: 16, className: "text-amber-500" });
+            default:
+                return _jsx(Activity, { size: 16, className: "text-gray-500" });
+        }
+    };
 
     // Calculate real-time stats from pool data
     const calculateStats = (poolsData) => {
@@ -130,60 +279,64 @@ const Dashboard = () => {
             ? poolsData.reduce((sum, p) => sum + Number(p.fee || 0), 0) / poolsData.length
             : 0;
 
+        // Calculate ULT market cap (mock calculation)
+        const ultSupply = 1000000000; // 1B tokens
+        const ultMarketCap = (ultSupply * parseFloat(ultPrice)).toFixed(0);
+
         setStats({
             tvl: `${Number(tvlUsd).toLocaleString()}`,
             activePools: activePools.toString(),
             totalMembers: totalMembers.toString(),
-            avgYield: `${avgYield.toFixed(1)}%`
+            avgYield: `${avgYield.toFixed(1)}%`,
+            ultMarketCap: `${Number(ultMarketCap).toLocaleString()}`
         });
     };
 
-
-const getPoolAction = (pool) => {
-    if (!account) {
-        return { text: "Connect Wallet", disabled: true, variant: "secondary" };
-    }
-    
-    const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
-    
-    // Creator can join their own pool if not yet joined and pool hasn't started
-    if (isCreator && !pool.joined && pool.currentCycle === 0n && pool.totalMembers < pool.maxMembers) {
-        return { text: "Join Your Pool", disabled: false, variant: "success" };
-    }
-    
-    // Check if creator can contribute after joining
-    if (isCreator && pool.joined && pool.canContribute) {
-        return { text: "Contribute", disabled: false, variant: "primary" };
-    }
-    
-    // Non-creator actions
-    if (pool.canJoin) {
-        return { text: "Join Pool", disabled: false, variant: "success" };
-    }
-    
-    if (pool.canContribute) {
-        return { text: "Contribute", disabled: false, variant: "primary" };
-    }
-    
-    if (pool.joined) {
-        return { text: "View Details", disabled: false, variant: "secondary" };
-    }
-    
-    // Creator manage option (fallback)
-    if (isCreator) {
-        return { text: "Manage Pool", disabled: false, variant: "primary" };
-    }
-    
-    if (!pool.isActive) {
-        return { text: "Inactive", disabled: true, variant: "secondary" };
-    }
-    
-    if (Number(pool.totalMembers) >= Number(pool.maxMembers)) {
-        return { text: "Pool Full", disabled: true, variant: "secondary" };
-    }
-    
-    return { text: "Started", disabled: true, variant: "secondary" };
-};
+    const getPoolAction = (pool) => {
+        if (!account) {
+            return { text: "Connect Wallet", disabled: true, variant: "secondary" };
+        }
+        
+        const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
+        
+        // Creator can join their own pool if not yet joined and pool hasn't started
+        if (isCreator && !pool.joined && pool.currentCycle === 0n && pool.totalMembers < pool.maxMembers) {
+            return { text: "Join Your Pool", disabled: false, variant: "success" };
+        }
+        
+        // Check if creator can contribute after joining
+        if (isCreator && pool.joined && pool.canContribute) {
+            return { text: "Contribute", disabled: false, variant: "primary" };
+        }
+        
+        // Non-creator actions
+        if (pool.canJoin) {
+            return { text: "Join Pool", disabled: false, variant: "success" };
+        }
+        
+        if (pool.canContribute) {
+            return { text: "Contribute", disabled: false, variant: "primary" };
+        }
+        
+        if (pool.joined) {
+            return { text: "View Details", disabled: false, variant: "secondary" };
+        }
+        
+        // Creator manage option (fallback)
+        if (isCreator) {
+            return { text: "Manage Pool", disabled: false, variant: "primary" };
+        }
+        
+        if (!pool.isActive) {
+            return { text: "Inactive", disabled: true, variant: "secondary" };
+        }
+        
+        if (Number(pool.totalMembers) >= Number(pool.maxMembers)) {
+            return { text: "Pool Full", disabled: true, variant: "secondary" };
+        }
+        
+        return { text: "Started", disabled: true, variant: "secondary" };
+    };
 
     // Handle pool actions
     const handlePoolAction = async (e, pool, action) => {
@@ -198,14 +351,18 @@ const getPoolAction = (pool) => {
                 toast.info("Joining pool...");
                 await tx.wait();
                 toast.success("Successfully joined pool!");
-                // Refresh pools data
-                setTimeout(() => window.location.reload(), 1000);
+                // Refresh data
+                setTimeout(() => {
+                    fetchUserData();
+                    fetchRecentActivity();
+                }, 1000);
             }
         } catch (error) {
             console.error("Error:", error);
             toast.error("Action failed: " + (error.reason || error.message));
         }
     };
+
     const getButtonClasses = (variant, disabled) => {
         const base = "w-full mt-4 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 transform";
         
@@ -224,88 +381,108 @@ const getPoolAction = (pool) => {
     };
 
     // Fetch pool data with enhanced error handling and membership status
-    useEffect(() => {
+    const fetchUserData = async () => {
         if (!contract) {
-            // Don't set error when contract is null (wallet not connected)
             setIsLoading(false);
             setPools([]);
             setPoolCount(0);
             return;
         }
 
-        const fetchPools = async () => {
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const nextPoolId = await contract.nextPoolId();
-                const total = Number(nextPoolId);
-                setPoolCount(total);
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const nextPoolId = await contract.nextPoolId();
+            const total = Number(nextPoolId);
+            setPoolCount(total);
 
-                if (total === 0) {
-                    setPools([]);
-                    setIsLoading(false);
-                    return;
-                }
-
-                const poolDetailsArray = await Promise.all(
-                    Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
-                );
-
-                // Enhanced pool formatting with membership and action detection
-                const formattedPools = await Promise.all(
-                    poolDetailsArray.map(async (poolInfo) => {
-                        let joined = false;
-                        let canJoin = false;
-                        let canContribute = false;
-
-                        if (account) {
-                            try {
-                                const members = await contract.getPoolMembers(poolInfo.id);
-                                joined = members.some((member) =>
-                                    member.wallet.toLowerCase() === account.toLowerCase()
-                                );
-
-                                canJoin = await contract.canJoinPool(poolInfo.id, account);
-                                canContribute = await contract.canContribute(poolInfo.id, account);
-                            } catch (memberError) {
-                                console.warn("Error checking membership for pool", poolInfo.id, memberError);
-                            }
-                        }
-
-                        return {
-                            id: BigInt(poolInfo.id.toString()),
-                            creator: poolInfo.creator,
-                            contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
-                            cycleDuration: BigInt(poolInfo.cycleDuration.toString()),
-                            maxMembers: BigInt(poolInfo.maxMembers.toString()),
-                            totalMembers: BigInt(poolInfo.totalMembers.toString()),
-                            currentCycle: BigInt(poolInfo.currentCycle.toString()),
-                            lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
-                            isActive: poolInfo.isActive,
-                            isCompleted: poolInfo.isCompleted,
-                            poolType: poolInfo.poolType,
-                            fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
-                            creatorRewards: poolInfo.creatorRewards ? BigInt(poolInfo.creatorRewards.toString()) : BigInt(0),
-                            joined,
-                            canJoin,
-                            canContribute
-                        };
-                    })
-                );
-
-                setPools(formattedPools);
-                calculateStats(formattedPools);
-            } catch (error) {
-                console.error("Error fetching pools:", error);
-                setError("Failed to fetch pool data");
+            if (total === 0) {
+                setPools([]);
+                setIsLoading(false);
+                return;
             }
-            
-            setIsLoading(false);
-        };
 
-        fetchPools();
+            const poolDetailsArray = await Promise.all(
+                Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
+            );
+
+            // Enhanced pool formatting with membership and action detection
+            const formattedPools = await Promise.all(
+                poolDetailsArray.map(async (poolInfo) => {
+                    let joined = false;
+                    let canJoin = false;
+                    let canContribute = false;
+
+                    if (account) {
+                        try {
+                            const members = await contract.getPoolMembers(poolInfo.id);
+                            joined = members.some((member) =>
+                                member.wallet.toLowerCase() === account.toLowerCase()
+                            );
+
+                            canJoin = await contract.canJoinPool(poolInfo.id, account);
+                            canContribute = await contract.canContribute(poolInfo.id, account);
+                        } catch (memberError) {
+                            console.warn("Error checking membership for pool", poolInfo.id, memberError);
+                        }
+                    }
+
+                    return {
+                        id: BigInt(poolInfo.id.toString()),
+                        creator: poolInfo.creator,
+                        contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
+                        cycleDuration: BigInt(poolInfo.cycleDuration.toString()),
+                        maxMembers: BigInt(poolInfo.maxMembers.toString()),
+                        totalMembers: BigInt(poolInfo.totalMembers.toString()),
+                        currentCycle: BigInt(poolInfo.currentCycle.toString()),
+                        lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
+                        isActive: poolInfo.isActive,
+                        isCompleted: poolInfo.isCompleted,
+                        poolType: poolInfo.poolType,
+                        fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
+                        creatorRewards: poolInfo.creatorRewards ? BigInt(poolInfo.creatorRewards.toString()) : BigInt(0),
+                        joined,
+                        canJoin,
+                        canContribute
+                    };
+                })
+            );
+
+            setPools(formattedPools);
+            calculateStats(formattedPools);
+        } catch (error) {
+            console.error("Error fetching pools:", error);
+            setError("Failed to fetch pool data");
+        }
+        
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        if (addresses && account) {
+            fetchULTBalance();
+        }
+    }, [addresses, account]);
+
+    useEffect(() => {
+        fetchUserData();
+        fetchRecentActivity();
     }, [contract, account]);
+
+    // Auto-refresh data every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (contract) {
+                fetchRecentActivity();
+                if (account && addresses) {
+                    fetchULTBalance();
+                }
+            }
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [contract, account, addresses]);
 
     // Enhanced error state
     if (error) {
@@ -347,7 +524,7 @@ const getPoolAction = (pool) => {
     return _jsxs("div", { 
         className: "w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12", 
         children: [
-            // Enhanced Hero Section
+            // Enhanced Hero Section with ULT Integration
             _jsx(motion.section, { 
                 className: "relative rounded-3xl overflow-hidden",
                 initial: { opacity: 0, y: 20 },
@@ -399,6 +576,26 @@ const getPoolAction = (pool) => {
                                 ] 
                             }),
                             
+                            // ULT Balance Display for Connected Users
+                            account && _jsx(motion.div, {
+                                className: "bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-6 max-w-md mx-auto border border-white/20",
+                                initial: { opacity: 0, scale: 0.8 },
+                                animate: { opacity: 1, scale: 1 },
+                                transition: { delay: 0.5, duration: 0.6 },
+                                children: _jsxs("div", {
+                                    className: "flex items-center justify-between text-white",
+                                    children: [
+                                        _jsxs("div", {
+                                            children: [
+                                                _jsx("p", { className: "text-sm text-white/70", children: "Your ULT Balance" }),
+                                                _jsxs("p", { className: "text-2xl font-bold", children: [parseFloat(ultBalance).toLocaleString(), " ULT"] })
+                                            ]
+                                        }),
+                                        _jsx(Coins, { size: 32, className: "text-yellow-300" })
+                                    ]
+                                })
+                            }),
+                            
                             _jsx(motion.div, {
                                 className: "flex justify-center mb-8",
                                 initial: { opacity: 0, scale: 0.5 },
@@ -426,7 +623,7 @@ const getPoolAction = (pool) => {
                                     "Build wealth together through transparent, decentralized savings pools with ",
                                     _jsx("span", { className: "text-yellow-300 font-semibold", children: "automated payouts" }),
                                     " and ",
-                                    _jsx("span", { className: "text-pink-300 font-semibold", children: "yield rewards" })
+                                    _jsx("span", { className: "text-pink-300 font-semibold", children: "ULT yield rewards" })
                                 ] 
                             }),
 
@@ -435,13 +632,27 @@ const getPoolAction = (pool) => {
                                 initial: { opacity: 0, y: 20 },
                                 animate: { opacity: 1, y: 0 },
                                 transition: { delay: 1, duration: 0.6 },
-                                children: _jsxs(Link, {
-                                    to: "/join-create",
-                                    className: "group bg-white/10 backdrop-blur-md hover:bg-white/20 text-white border border-white/30 hover:border-white/50 px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-105",
+                                children: _jsxs("div", {
+                                    className: "flex gap-4",
                                     children: [
-                                        _jsx(Plus, { size: 20 }),
-                                        "Create Your Pool",
-                                        _jsx(ArrowRight, { size: 18, className: "group-hover:translate-x-1 transition-transform" })
+                                        _jsxs(Link, {
+                                            to: "/join-create",
+                                            className: "group bg-white/10 backdrop-blur-md hover:bg-white/20 text-white border border-white/30 hover:border-white/50 px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-105",
+                                            children: [
+                                                _jsx(Plus, { size: 20 }),
+                                                "Create Pool",
+                                                _jsx(ArrowRight, { size: 18, className: "group-hover:translate-x-1 transition-transform" })
+                                            ]
+                                        }),
+                                        _jsxs(Link, {
+                                            to: "/faucet",
+                                            className: "group bg-yellow-400/20 backdrop-blur-md hover:bg-yellow-400/30 text-white border border-yellow-300/30 hover:border-yellow-300/50 px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-105",
+                                            children: [
+                                                _jsx(Gift, { size: 20 }),
+                                                "Get ULT",
+                                                _jsx(ArrowRight, { size: 18, className: "group-hover:translate-x-1 transition-transform" })
+                                            ]
+                                        })
                                     ]
                                 })
                             })
@@ -450,21 +661,29 @@ const getPoolAction = (pool) => {
                 ]
             }),
 
-            // Enhanced Stats Section
+            // Enhanced Stats Section with ULT Market Data
             _jsx(motion.section, { 
                 variants: containerVariants,
                 initial: "hidden",
                 animate: "visible",
                 children: _jsx("div", { 
-                    className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", 
+                    className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6", 
                     children: [
                         {
                             title: "Total Value Locked",
-                            value: stats.tvl,
+                            value: `$${stats.tvl}`,
                             change: "+12.6%",
                             icon: _jsx(DollarSign, { size: 28, className: "text-indigo-600 dark:text-indigo-400" }),
                             bg: "bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20",
                             border: "border-indigo-200 dark:border-indigo-800"
+                        },
+                        {
+                            title: "ULT Market Cap",
+                            value: `$${stats.ultMarketCap}`,
+                            change: "+3.2%",
+                            icon: _jsx(Coins, { size: 28, className: "text-yellow-600 dark:text-yellow-400" }),
+                            bg: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20",
+                            border: "border-yellow-200 dark:border-yellow-800"
                         },
                         {
                             title: "Active Pools",
@@ -523,18 +742,18 @@ const getPoolAction = (pool) => {
                                             children: stat.title 
                                         }),
                                         _jsx("h3", { 
-                                            className: "text-3xl font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors", 
+                                            className: "text-2xl font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors", 
                                             children: stat.value 
                                         })
                                     ] 
                                 })
                             ] 
-                                                                }, index)
+                        }, index)
                     )
                 }) 
             }),
 
-// Navigation Cards Section
+            // Navigation Cards Section
             _jsx(motion.section, {
                 className: "mb-12",
                 variants: containerVariants,
@@ -567,38 +786,38 @@ const getPoolAction = (pool) => {
                                     whileHover: { scale: 1.1, rotate: -5 },
                                     children: _jsx(Users, { size: 32, className: "mb-3" })
                                 }),
-                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Member Dashboard" }),
+                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Your Dashboard" }),
                                 _jsx("p", { className: "text-sm opacity-90", children: "Manage your pools and track contributions" }),
                                 _jsx(ArrowRight, { size: 16, className: "mt-2 group-hover:translate-x-1 transition-transform" })
                             ]
                         }),
                         
                         _jsx(Link, { 
-                            key: "analytics-link",
-                            to: "/analytics", 
+                            key: "staking-link",
+                            to: "/staking", 
                             className: "group bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
                                 _jsx(motion.div, {
                                     whileHover: { scale: 1.1, rotate: -5 },
                                     children: _jsx(TrendingUp, { size: 32, className: "mb-3" })
                                 }),
-                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Platform Analytics" }),
-                                _jsx("p", { className: "text-sm opacity-90", children: "Insights, statistics and platform metrics" }),
+                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Stake ULT" }),
+                                _jsx("p", { className: "text-sm opacity-90", children: "Earn 10% APY and unlock fee discounts" }),
                                 _jsx(ArrowRight, { size: 16, className: "mt-2 group-hover:translate-x-1 transition-transform" })
                             ]
                         }),
                         
                         _jsx(Link, { 
-                            key: "leaderboard-link",
-                            to: "/leaderboard", 
+                            key: "faucet-link",
+                            to: "/faucet", 
                             className: "group bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
                                 _jsx(motion.div, {
                                     whileHover: { scale: 1.1, rotate: 5 },
-                                    children: _jsx(Award, { size: 32, className: "mb-3" })
+                                    children: _jsx(Gift, { size: 32, className: "mb-3" })
                                 }),
-                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Leaderboard" }),
-                                _jsx("p", { className: "text-sm opacity-90", children: "Top performers and achievements" }),
+                                _jsx("h3", { className: "font-bold text-lg mb-2", children: "Get ULT Tokens" }),
+                                _jsx("p", { className: "text-sm opacity-90", children: "Claim free tokens from the faucet" }),
                                 _jsx(ArrowRight, { size: 16, className: "mt-2 group-hover:translate-x-1 transition-transform" })
                             ]
                         }),
@@ -733,7 +952,7 @@ const getPoolAction = (pool) => {
                                 variants: containerVariants,
                                 initial: "hidden",
                                 animate: "visible",
-                                children: pools.map((pool) => {
+                                children: pools.slice(0, 6).map((pool) => {
                                     const poolIdStr = pool.id.toString();
                                     const totalMembersStr = pool.totalMembers.toString();
                                     const maxMembersStr = pool.maxMembers.toString();
@@ -744,17 +963,6 @@ const getPoolAction = (pool) => {
                                     const completionPercentage = (Number(pool.totalMembers) / Number(pool.maxMembers)) * 100;
                                     const isCreator = account && pool.creator.toLowerCase() === account.toLowerCase();
                                     const creatorRewardsEth = pool.creatorRewards ? ethers.formatEther(pool.creatorRewards.toString()) : "0";
-
-                                    // Debug contribute issue
-                                    if (isCreator) {
-                                        console.log('Creator pool debug:', {
-                                            poolId: poolIdStr,
-                                            joined: pool.joined,
-                                            canContribute: pool.canContribute,
-                                            currentCycle: pool.currentCycle.toString(),
-                                            action: action.text
-                                        });
-                                    }
 
                                     return _jsx(motion.div, {
                                         variants: itemVariants,
@@ -849,21 +1057,10 @@ const getPoolAction = (pool) => {
                                                                     _jsxs("div", { 
                                                                         className: "flex justify-between items-center", 
                                                                         children: [
-                                                                            _jsx("span", { className: "text-sm font-medium text-gray-600 dark:text-gray-400", children: "Cycle Duration" }),
-                                                                            _jsxs("span", { 
-                                                                                className: "text-sm font-bold text-gray-900 dark:text-white", 
-                                                                                children: [cycleDurationDays.toFixed(1), " days"] 
-                                                                            })
-                                                                        ] 
-                                                                    }),
-                                                                    
-                                                                    _jsxs("div", { 
-                                                                        className: "flex justify-between items-center", 
-                                                                        children: [
-                                                                            _jsx("span", { className: "text-sm font-medium text-gray-600 dark:text-gray-400", children: "APY" }),
+                                                                            _jsx("span", { className: "text-sm font-medium text-gray-600 dark:text-gray-400", children: "ULT APY" }),
                                                                             _jsx("span", { 
                                                                                 className: "text-sm font-bold text-emerald-600 dark:text-emerald-400", 
-                                                                                children: pool.fee ? pool.fee.toString() + "%" : "N/A" 
+                                                                                children: pool.fee ? pool.fee.toString() + "%" : "0%" 
                                                                             })
                                                                         ] 
                                                                     })
@@ -896,83 +1093,12 @@ const getPoolAction = (pool) => {
                                                                 ] 
                                                             }),
 
-                                                            // Creator Rewards Section
-                                                            isCreator && parseFloat(creatorRewardsEth) > 0 && _jsx("div", { 
-                                                                className: "mb-4 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl border border-amber-200 dark:border-amber-800", 
-                                                                children: _jsxs("div", { 
-                                                                    className: "flex justify-between items-center", 
-                                                                    children: [
-                                                                        _jsxs("div", { 
-                                                                            children: [
-                                                                                _jsx("p", { className: "text-xs text-amber-600 dark:text-amber-400 font-medium", children: "Creator Rewards" }),
-                                                                                _jsxs("p", { 
-                                                                                    className: "text-sm font-bold text-amber-700 dark:text-amber-300", 
-                                                                                    children: [creatorRewardsEth, " ETH"] 
-                                                                                })
-                                                                            ] 
-                                                                        }),
-                                                                        _jsx(Gift, { size: 16, className: "text-amber-500" })
-                                                                    ] 
-                                                                }) 
-                                                            }),
-
-                                                            // Locked Balance Section  
-                                                            pool.joined && !isCreator && _jsx("div", { 
-                                                                className: "mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800", 
-                                                                children: _jsxs("div", { 
-                                                                    className: "flex justify-between items-center", 
-                                                                    children: [
-                                                                        _jsxs("div", { 
-                                                                            children: [
-                                                                                _jsx("p", { className: "text-xs text-blue-600 dark:text-blue-400 font-medium", children: "Locked Balance" }),
-                                                                                _jsx("p", { className: "text-sm font-bold text-blue-700 dark:text-blue-300", children: "Calculating..." })
-                                                                            ] 
-                                                                        }),
-                                                                        _jsx(Shield, { size: 16, className: "text-blue-500" })
-                                                                    ] 
-                                                                }) 
-                                                            }),
-                                                            
-                                                            // Status badges
-                                                            _jsxs("div", { 
-                                                                className: "flex flex-wrap gap-2 mb-4", 
-                                                                children: [
-                                                                    _jsxs("span", { 
-                                                                        className: "px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300", 
-                                                                        children: ["Cycle ", pool.currentCycle.toString()] 
-                                                                    }),
-                                                                    _jsx("span", { 
-                                                                        className: `px-3 py-1 rounded-lg text-xs font-bold ${
-                                                                            pool.isActive 
-                                                                                ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300"
-                                                                                : "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300"
-                                                                        }`, 
-                                                                        children: pool.isActive ? "Active" : "Inactive" 
-                                                                    }),
-                                                                    pool.isCompleted && _jsx("span", { 
-                                                                        className: "px-3 py-1 rounded-lg text-xs font-bold bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300", 
-                                                                        children: "Completed" 
-                                                                    })
-                                                                ] 
-                                                            }),
-                                                            
                                                             // ULT Balance & Claim Section
-                                                            account && pool.joined && pool.creator.toLowerCase() !== account.toLowerCase() && 
+                                                            account && pool.joined && !isCreator && 
                                                                 _jsx("div", { 
-                                                                    className: "mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800", 
+                                                                    className: "mb-4", 
                                                                     children: _jsx(UltBalanceAndClaim, { poolId: poolIdStr }) 
                                                                 }),
-
-                                                            // Creator Manage Button (only when no other action available)
-                                                            isCreator && !pool.canContribute && !pool.canJoin && _jsx("div", { 
-                                                                className: "mb-2", 
-                                                                children: _jsx(motion.button, {
-                                                                    whileHover: { scale: 1.02 },
-                                                                    whileTap: { scale: 0.98 },
-                                                                    className: "w-full py-2 px-4 rounded-lg font-medium text-sm bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg transition-all duration-200",
-                                                                    children: "Manage Pool"
-                                                                })
-                                                            }),
 
                                                             _jsx(motion.button, {
                                                                 onClick: (e) => handlePoolAction(e, pool, action),
@@ -994,7 +1120,7 @@ const getPoolAction = (pool) => {
                 ]
             }),
 
-            // Enhanced Activity Feed
+            // Enhanced Real Activity Feed
             _jsx(motion.section, {
                 variants: containerVariants,
                 initial: "hidden",
@@ -1009,12 +1135,24 @@ const getPoolAction = (pool) => {
                                     _jsx("p", { className: "text-gray-600 dark:text-gray-400", children: "Latest transactions across all pools" })
                                 ] 
                             }),
-                            _jsxs(Link, {
-                                to: "/pools",
-                                className: "inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold transition-colors group",
+                            _jsxs("div", {
+                                className: "flex gap-3",
                                 children: [
-                                    "View All Pools",
-                                    _jsx(ArrowRight, { size: 16, className: "group-hover:translate-x-1 transition-transform" })
+                                    _jsx(motion.button, {
+                                        onClick: fetchRecentActivity,
+                                        className: "inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 font-semibold transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700",
+                                        whileHover: { scale: 1.05 },
+                                        whileTap: { scale: 0.95 },
+                                        children: _jsx(RefreshCw, { size: 16, className: activitiesLoading ? "animate-spin" : "" })
+                                    }),
+                                    _jsxs(Link, {
+                                        to: "/pools",
+                                        className: "inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold transition-colors group",
+                                        children: [
+                                            "View All Pools",
+                                            _jsx(ArrowRight, { size: 16, className: "group-hover:translate-x-1 transition-transform" })
+                                        ]
+                                    })
                                 ]
                             })
                         ] 
@@ -1022,68 +1160,104 @@ const getPoolAction = (pool) => {
 
                     _jsx("div", { 
                         className: "bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden", 
-                        children: _jsx("ul", { 
-                            className: "divide-y divide-gray-100 dark:divide-gray-700", 
-                            children: activities.map((activity) => 
-                                _jsx(motion.li, {
-                                    key: activity.id,
-                                    whileHover: {
-                                        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
-                                        scale: 1.01
-                                    },
-                                    className: "px-6 py-4 cursor-pointer transition-all duration-200",
-                                    children: _jsxs("div", { 
-                                        className: "flex items-center justify-between", 
-                                        children: [
-                                            _jsxs("div", { 
-                                                className: "flex items-center gap-4", 
-                                                children: [
-                                                    _jsx("div", { 
-                                                        className: "flex-shrink-0 p-2 rounded-lg bg-gray-50 dark:bg-gray-700", 
-                                                        children: activity.icon 
-                                                    }),
-                                                    _jsxs("div", { 
-                                                        children: [
-                                                            _jsxs("p", { 
-                                                                className: "text-sm font-semibold text-gray-900 dark:text-white", 
-                                                                children: [
-                                                                    activity.type === "join" && "Joined",
-                                                                    activity.type === "payout" && "Payout from",
-                                                                    activity.type === "reward" && "Creator reward from",
-                                                                    " ",
-                                                                    _jsxs("span", { 
-                                                                        className: "text-indigo-600 dark:text-indigo-400 font-bold", 
-                                                                        children: ["Pool #", activity.pool] 
-                                                                    })
-                                                                ] 
-                                                            }),
-                                                            _jsxs("p", { 
-                                                                className: "text-xs text-gray-500 dark:text-gray-400", 
-                                                                children: [
-                                                                    activity.user, 
-                                                                    " • ", 
-                                                                    _jsx("span", { className: "font-semibold", children: activity.amount })
-                                                                ] 
-                                                            })
-                                                        ] 
-                                                    })
-                                                ] 
-                                            }),
-                                            _jsxs("div", { 
-                                                className: "flex items-center gap-2 text-gray-400", 
-                                                children: [
-                                                    _jsx(Clock, { size: 14 }),
-                                                    _jsx("span", { 
-                                                        className: "text-xs font-medium", 
-                                                        children: activity.time 
-                                                    })
-                                                ] 
-                                            })
-                                        ] 
+                        children: activitiesLoading ? 
+                            _jsx("div", {
+                                className: "p-6 text-center",
+                                children: _jsxs("div", {
+                                    className: "flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400",
+                                    children: [
+                                        _jsx("div", { className: "w-5 h-5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" }),
+                                        "Loading recent activity..."
+                                    ]
+                                })
+                            }) :
+                        activities.length === 0 ?
+                            _jsx("div", {
+                                className: "p-8 text-center",
+                                children: _jsxs("div", {
+                                    children: [
+                                        _jsx("div", {
+                                            className: "bg-gray-100 dark:bg-gray-700 rounded-full p-4 w-fit mx-auto mb-4",
+                                            children: _jsx(Activity, { size: 32, className: "text-gray-400" })
+                                        }),
+                                        _jsx("h3", {
+                                            className: "text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2",
+                                            children: "No Recent Activity"
+                                        }),
+                                        _jsx("p", {
+                                            className: "text-gray-500 dark:text-gray-500",
+                                            children: "Pool transactions will appear here when they happen"
+                                        })
+                                    ]
+                                })
+                            }) :
+                            _jsx("ul", { 
+                                className: "divide-y divide-gray-100 dark:divide-gray-700", 
+                                children: activities.map((activity, index) => 
+                                    _jsx(motion.li, {
+                                        key: `${activity.transactionHash}-${index}`,
+                                        whileHover: {
+                                            backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                                            scale: 1.01
+                                        },
+                                        className: "px-6 py-4 cursor-pointer transition-all duration-200",
+                                        children: _jsxs("div", { 
+                                            className: "flex items-center justify-between", 
+                                            children: [
+                                                _jsxs("div", { 
+                                                    className: "flex items-center gap-4", 
+                                                    children: [
+                                                        _jsx("div", { 
+                                                            className: "flex-shrink-0 p-2 rounded-lg bg-gray-50 dark:bg-gray-700", 
+                                                            children: activity.icon 
+                                                        }),
+                                                        _jsxs("div", { 
+                                                            children: [
+                                                                _jsxs("p", { 
+                                                                    className: "text-sm font-semibold text-gray-900 dark:text-white", 
+                                                                    children: [
+                                                                        activity.type === "join" && "Joined",
+                                                                        activity.type === "payout" && "Payout received from",
+                                                                        activity.type === "reward" && "Creator reward from",
+                                                                        " ",
+                                                                        _jsxs("span", { 
+                                                                            className: "text-indigo-600 dark:text-indigo-400 font-bold", 
+                                                                            children: ["Pool #", activity.poolId] 
+                                                                        })
+                                                                    ] 
+                                                                }),
+                                                                _jsxs("p", { 
+                                                                    className: "text-xs text-gray-500 dark:text-gray-400", 
+                                                                    children: [
+                                                                        activity.user.slice(0, 8), 
+                                                                        "...",
+                                                                        activity.user.slice(-6),
+                                                                        activity.amount && " • ",
+                                                                        activity.amount && _jsxs("span", { 
+                                                                            className: "font-semibold", 
+                                                                            children: [activity.amount, " ETH"] 
+                                                                        })
+                                                                    ] 
+                                                                })
+                                                            ] 
+                                                        })
+                                                    ] 
+                                                }),
+                                                _jsxs("div", { 
+                                                    className: "flex items-center gap-2 text-gray-400", 
+                                                    children: [
+                                                        _jsx(Clock, { size: 14 }),
+                                                        _jsx("span", { 
+                                                            className: "text-xs font-medium", 
+                                                            children: activity.time 
+                                                        })
+                                                    ] 
+                                                })
+                                            ] 
+                                        })
                                     })
-                                }, activity.id)
-                            ) 
-                        }) 
+                                ) 
+                            }) 
                     })
                 ]
             })
