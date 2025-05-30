@@ -33,24 +33,24 @@ const ULTStaking = () => {
       if (chainId === 50311) {
         console.log("Connected to Somnia network");
         return {
-          ultToken: "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
+          ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
         };
       } else if (chainId === 4202) {
         console.log("Connected to Lisk Sepolia network");
         return {
-          ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+          ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
         };
       } else {
         console.warn("Unknown network, defaulting to Lisk Sepolia");
         return {
-          ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+          ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
         };
       }
     } catch (error) {
       console.error("Error detecting network:", error);
       // Default to Lisk Sepolia
       return {
-        ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
+        ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
       };
     }
   };

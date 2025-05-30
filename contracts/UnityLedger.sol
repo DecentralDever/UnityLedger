@@ -5,7 +5,7 @@ interface IERC20Mintable {
     function mint(address to, uint256 amount) external;
     function balanceOf(address account) external view returns (uint256);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function burnFromFees(uint256 amount) external;
+    function burn(uint256 amount) external;
     function getFeeDiscount(address user) external view returns (uint256);
 }
 
@@ -210,9 +210,9 @@ contract UnityLedger {
                 "ULT fee payment failed"
             );
             
-            // Burn 50% of creation fee
+            // Burn 50% of creation fee - FIXED: use burn() instead of burnFromFees()
             uint256 burnAmount = creationFee / 2;
-            ultToken.burnFromFees(burnAmount);
+            ultToken.burn(burnAmount);
             totalUltBurned += burnAmount;
             emit UltBurned(burnAmount, "Pool creation fee");
         }

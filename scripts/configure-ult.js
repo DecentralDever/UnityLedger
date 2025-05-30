@@ -8,12 +8,12 @@ async function main() {
   // Network-specific addresses
   const addresses = {
     4202: { // Lisk Sepolia
-      unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
-      ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403" // New ULT token
+      unityLedger: "0xF7C911C3542687F49Dd42a3F0D54A2cB1D2142A8",
+      ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228" // New ULT token
     },
     50312: { // Somnia
-      unityLedger: "0x5899ae510f1Ea8bf8Cf3A176EB3C7BA9582Ad974", 
-      ultToken: "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C" // New ULT token
+      unityLedger: "0xC2E82087CEce1850ba3F10926Ff56f558B7E6Ad0", 
+      ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f" // New ULT token
     }
   };
 
