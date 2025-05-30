@@ -340,6 +340,11 @@ const Dashboard = () => {
 
     // Handle pool actions
     const handlePoolAction = async (e, pool, action) => {
+        // Don't prevent default for "View Details" - let Link handle navigation
+        if (action.text === "View Details") {
+            return;
+        }
+        
         e.preventDefault();
         e.stopPropagation();
         
