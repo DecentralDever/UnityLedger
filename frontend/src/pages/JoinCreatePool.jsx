@@ -25,7 +25,7 @@ const JoinCreatePool = () => {
         console.log("Connected to Somnia network");
         return {
           unityLedger: "0xC2E82087CEce1850ba3F10926Ff56f558B7E6Ad0",
-          ultToken:    "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
+          ultToken:    "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
         };
       } else if (chainId === 4202) {
         console.log("Connected to Lisk Sepolia network");
