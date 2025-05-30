@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useUnityLedgerContract } from "../services/contract";
 import { useWallet } from "../context/WalletProvider";
 import { toast } from "react-toastify";
@@ -23,27 +24,27 @@ const JoinCreatePool = () => {
       if (chainId === 50311) {
         console.log("Connected to Somnia network");
         return {
-          unityLedger: "0xC2E82087CEce1850ba3F10926Ff56f558B7E6Ad0",
-          ultToken:    "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
+          unityLedger: "0x5899ae510f1Ea8bf8Cf3A176EB3C7BA9582Ad974",
+          ultToken:    "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
         };
       } else if (chainId === 4202) {
         console.log("Connected to Lisk Sepolia network");
         return {
-          unityLedger: "0xF7C911C3542687F49Dd42a3F0D54A2cB1D2142A8",
-          ultToken:    "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
+          unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+          ultToken:    "0xEE182471D7d6E9822936A223f18A6ac768846403"
         };
       } else {
         console.warn("Unknown network, defaulting to Lisk Sepolia");
         return {
-          unityLedger: "0xF7C911C3542687F49Dd42a3F0D54A2cB1D2142A8",
-          ultToken:    "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
+          unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+          ultToken:    "0xEE182471D7d6E9822936A223f18A6ac768846403"
         };
       }
     } catch (error) {
       console.error("Error detecting network:", error);
       return {
-        unityLedger: "0xF7C911C3542687F49Dd42a3F0D54A2cB1D2142A8",
-        ultToken:    "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
+        unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+        ultToken:    "0xEE182471D7d6E9822936A223f18A6ac768846403"
       };
     }
   };
@@ -246,7 +247,7 @@ const JoinCreatePool = () => {
       // Check wallet ETH balance (only need gas, not total pool value)
       const walletBalance = await provider.getBalance(account);
       const weiAmount = ethers.parseEther(contributionAmount);
-      const gasBuffer = ethers.parseEther("0.001"); // 0.001 ETH buffer for gas
+      const gasBuffer = ethers.parseEther("0.005"); // 0.005 ETH buffer for gas
       
       if (walletBalance < gasBuffer) {
         throw new Error(`Insufficient ETH for gas. You have ${ethers.formatEther(walletBalance)} ETH, need at least ${ethers.formatEther(gasBuffer)} ETH. Get testnet ETH from Lisk Sepolia faucet.`);
@@ -444,12 +445,12 @@ const JoinCreatePool = () => {
                     <li>• Trade on the ULT DEX platform</li>
                   </ul>
                 </div>
-                <a 
-                  href="/faucet" 
+                <Link 
+                  to="/faucet" 
                   className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200"
                 >
                   Get ULT from Faucet <ExternalLink size={12} />
-                </a>
+                </Link>
               </div>
             </div>
           </div>

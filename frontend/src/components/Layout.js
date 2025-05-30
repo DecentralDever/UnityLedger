@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ConnectButton from "./ConnectButton";
-import { Menu, X, ChevronDown, ExternalLink, Moon, Sun } from "lucide-react";
+import { Menu, X, ChevronDown, ExternalLink, Moon, Sun, icons } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeProvider";
 const Layout = ({ children }) => {
@@ -40,9 +40,8 @@ const Layout = ({ children }) => {
     ];
     // Social links
     const socialLinks = [
-        { href: "https://twitter.com/unityledger", label: "Twitter" },
-        { href: "https://discord.gg/unityledger", label: "Discord" },
-        { href: "https://github.com/unityledger", label: "GitHub" },
+        { href: "https://x.com/Unity_Ledger", label: "Twitter" },
+        { href: "https://discord.gg/KyHacx9h", label: "Discord" },
     ];
     return (_jsxs("div", { className: "min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300", children: [_jsx("a", { href: "#main-content", className: "sr-only focus:not-sr-only fixed top-4 left-4 z-50 bg-indigo-600 text-white p-3 rounded-md", children: "Skip to content" }), _jsxs("header", { className: `sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 backdrop-blur-md transition-all duration-300 ${scrolled ? "shadow-md" : ""}`, children: [_jsx("div", { className: "max-w-7xl mx-auto px-4 sm:px-6", children: _jsxs("div", { className: "flex justify-between items-center h-16", children: [_jsx("div", { className: "flex-shrink-0 flex items-center", children: _jsxs(Link, { to: "/", className: "flex items-center", children: [_jsx(motion.img, { src: "/images/UL.png", alt: "UnityLedger", className: "h-8 w-auto", whileHover: { scale: 1.05 }, transition: { duration: 0.2 } }), _jsx("span", { className: "ml-3 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 hidden sm:block", children: "UnityLedger" })] }) }), _jsxs("nav", { className: "hidden md:flex space-x-4", children: [navItems.map((item) => (_jsxs(Link, { to: item.to, className: `px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${location.pathname === item.to
                                                 ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"

@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { WalletProvider } from "./context/WalletProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
 import AllPools from "./pages/Allpools";
-import Analytics from "./pages/Analytics";
+import Analytics from "./pages/Analytics.jsx";
 import Leaderboard from "./pages/Leaderboard";
 import MemberDashboard from "./pages/MemberDashboard";
 //import SwapInterface from "./pages/SwapInterface.jsx";
