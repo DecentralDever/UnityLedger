@@ -27,28 +27,28 @@ const JoinCreatePool = () => {
             if (chainId === 50311) {
                 console.log("Connected to Somnia network");
                 return {
-                    unityLedger: "0x4aF3f338a552968ac9D766229d53676413cED918",
-                    ultToken: "0x234CFEe105A2c7223Aae5a3F80c109EE6b5bB0F5"
+                    unityLedger: "0x5899ae510f1Ea8bf8Cf3A176EB3C7BA9582Ad974",
+                    ultToken: "0xD8Ab46987e8732070dB487908E5BE39E3C34bb4C"
                 };
             } else if (chainId === 4202) {
                 console.log("Connected to Lisk Sepolia network");
                 return {
-                    unityLedger: "0x48ab1f82e63980Ba8696FB4fe4EB3440ffaa19bb",
-                    ultToken: "0xCaB2f442dBaa702593d915dc1dD5333943081C37"
+                    unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+                    ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
                 };
             } else {
                 console.warn("Unknown network, defaulting to Lisk Sepolia");
                 return {
-                    unityLedger: "0x48ab1f82e63980Ba8696FB4fe4EB3440ffaa19bb",
-                    ultToken: "0xCaB2f442dBaa702593d915dc1dD5333943081C37"
+                    unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+                    ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
                 };
             }
         } catch (error) {
             console.error("Error detecting network:", error);
             // Default to Lisk Sepolia
             return {
-                unityLedger: "0x48ab1f82e63980Ba8696FB4fe4EB3440ffaa19bb",
-                ultToken: "0xCaB2f442dBaa702593d915dc1dD5333943081C37"
+                unityLedger: "0x77039e3eB3c41c252Ee5ad699CFF80FcD19C2e0C",
+                ultToken: "0xEE182471D7d6E9822936A223f18A6ac768846403"
             };
         }
     };
