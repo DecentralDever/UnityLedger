@@ -799,7 +799,7 @@ const Dashboard = () => {
                         
                         _jsx(Link, { 
                             key: "staking-link",
-                            to: "/staking", 
+                            to: "/stake", 
                             className: "group bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-2xl p-6 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl", 
                             children: [
                                 _jsx(motion.div, {
