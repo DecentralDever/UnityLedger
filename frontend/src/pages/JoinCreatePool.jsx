@@ -14,7 +14,7 @@ const JoinCreatePool = () => {
   // Network addresses state
   const [networkAddresses, setNetworkAddresses] = useState(null);
   
-  // Get network addresses based on chainId
+  // Get network addresses based on chainId -->
   const getNetworkAddresses = async () => {
     if (!window.ethereum) return null;
     try {
