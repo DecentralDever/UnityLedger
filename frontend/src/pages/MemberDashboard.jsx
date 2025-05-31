@@ -446,7 +446,7 @@ const MemberDashboard = () => {
             </div>
           </button>
           <button 
-            onClick={() => window.location.href = '/create-pool'}
+            onClick={() => window.location.href = '/join-create'}
             className="bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 p-4 rounded-xl border border-gray-200 dark:border-gray-600 transition-colors text-left"
           >
             <div className="flex items-center gap-3">
@@ -461,7 +461,7 @@ const MemberDashboard = () => {
             </div>
           </button>
           <button 
-            onClick={() => window.location.href = '/staking'}
+            onClick={() => window.location.href = '/stake'}
             className="bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 p-4 rounded-xl border border-gray-200 dark:border-gray-600 transition-colors text-left"
           >
             <div className="flex items-center gap-3">
