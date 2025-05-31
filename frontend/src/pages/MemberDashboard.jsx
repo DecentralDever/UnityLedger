@@ -308,7 +308,7 @@ const MemberDashboard = () => {
         </div>
         <div className="mt-4 flex gap-3">
           <button 
-            onClick={() => window.location.href = '/staking'}
+            onClick={() => window.location.href = '/stake'}
             className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
           >
             <TrendingUp size={16} />
