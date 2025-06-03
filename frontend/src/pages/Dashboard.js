@@ -31,6 +31,43 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { ethers } from "ethers";
 
+// BIGINT FIX: Helper function to safely convert values to BigInt
+const safeBigInt = (value) => {
+  if (!value) return BigInt(0);
+  if (typeof value === 'bigint') return value;
+  
+  let str = value.toString();
+  
+  // Fix scientific notation (e.g., "1.260913e+21")
+  if (str.includes('e+')) {
+    const num = parseFloat(str);
+    if (!isNaN(num)) {
+      str = num.toLocaleString('fullwide', { useGrouping: false });
+    }
+  }
+  
+  // Remove decimal points
+  if (str.includes('.')) {
+    str = str.split('.')[0];
+  }
+  
+  // Clean up and keep only digits
+  str = str.replace(/[^0-9]/g, '');
+  
+  return str ? BigInt(str) : BigInt(0);
+};
+
+// BIGINT FIX: Safe ether formatting
+const safeFormatEther = (value) => {
+  try {
+    const bigIntValue = safeBigInt(value);
+    return ethers.formatEther(bigIntValue);
+  } catch (error) {
+    console.warn('Failed to format ether:', value, error);
+    return '0';
+  }
+};
+
 const Dashboard = () => {
     const contract = useUnityLedgerContract();
     const { account } = useWallet();
@@ -132,7 +169,7 @@ const Dashboard = () => {
         }
     };
 
-    // Calculate stats from actual pool data
+    // BIGINT FIX: Updated stats calculation with safe BigInt handling
     const [stats, setStats] = useState({
         tvl: "$0",
         activePools: "0",
@@ -264,15 +301,19 @@ const Dashboard = () => {
         }
     };
 
-    // Calculate real-time stats from pool data
+    // BIGINT FIX: Updated stats calculation with safe handling
     const calculateStats = (poolsData) => {
         const activePools = poolsData.filter(p => p.isActive).length;
         const totalMembers = poolsData.reduce((sum, p) => sum + Number(p.totalMembers), 0);
         
+        // Safe TVL calculation
         const tvlWei = poolsData.reduce((sum, p) => {
-            return sum + (Number(p.contributionAmount) * Number(p.totalMembers));
+            const contribution = Number(p.contributionAmount) || 0;
+            const members = Number(p.totalMembers) || 0;
+            return sum + (contribution * members);
         }, 0);
-        const tvlEth = ethers.formatEther(tvlWei.toString());
+        
+        const tvlEth = safeFormatEther(tvlWei.toString());
         const tvlUsd = (parseFloat(tvlEth) * 1600).toFixed(0);
         
         const avgYield = poolsData.length > 0 
@@ -300,7 +341,7 @@ const Dashboard = () => {
         const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
         
         // Creator can join their own pool if not yet joined and pool hasn't started
-        if (isCreator && !pool.joined && pool.currentCycle === 0n && pool.totalMembers < pool.maxMembers) {
+        if (isCreator && !pool.joined && pool.currentCycle === BigInt(0) && Number(pool.totalMembers) < Number(pool.maxMembers)) {
             return { text: "Join Your Pool", disabled: false, variant: "success" };
         }
         
@@ -385,7 +426,7 @@ const Dashboard = () => {
         }
     };
 
-    // Fetch pool data with enhanced error handling and membership status
+    // BIGINT FIX: Updated fetchUserData with safe BigInt conversions
     const fetchUserData = async () => {
         if (!contract) {
             setIsLoading(false);
@@ -412,7 +453,7 @@ const Dashboard = () => {
                 Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
             );
 
-            // Enhanced pool formatting with membership and action detection
+            // BIGINT FIX: Enhanced pool formatting with safe BigInt conversions
             const formattedPools = await Promise.all(
                 poolDetailsArray.map(async (poolInfo) => {
                     let joined = false;
@@ -433,20 +474,23 @@ const Dashboard = () => {
                         }
                     }
 
+                    // FIXED: Use safeBigInt for all BigInt conversions
                     return {
-                        id: BigInt(poolInfo.id.toString()),
+                        id: safeBigInt(poolInfo.id),
                         creator: poolInfo.creator,
-                        contributionAmount: BigInt(poolInfo.contributionAmount.toString()),
-                        cycleDuration: BigInt(poolInfo.cycleDuration.toString()),
-                        maxMembers: BigInt(poolInfo.maxMembers.toString()),
-                        totalMembers: BigInt(poolInfo.totalMembers.toString()),
-                        currentCycle: BigInt(poolInfo.currentCycle.toString()),
-                        lastPayoutTime: BigInt(poolInfo.lastPayoutTime.toString()),
+                        contributionAmount: safeBigInt(poolInfo.contributionAmount),
+                        cycleDuration: safeBigInt(poolInfo.cycleDuration),
+                        maxMembers: safeBigInt(poolInfo.maxMembers),
+                        totalMembers: safeBigInt(poolInfo.totalMembers),
+                        currentCycle: safeBigInt(poolInfo.currentCycle),
+                        lastPayoutTime: safeBigInt(poolInfo.lastPayoutTime),
                         isActive: poolInfo.isActive,
                         isCompleted: poolInfo.isCompleted,
                         poolType: poolInfo.poolType,
-                        fee: poolInfo.fee ? BigInt(poolInfo.fee.toString()) : BigInt(0),
-                        creatorRewards: poolInfo.creatorRewards ? BigInt(poolInfo.creatorRewards.toString()) : BigInt(0),
+                        fee: safeBigInt(poolInfo.fee || 0),
+                        creatorRewards: safeBigInt(poolInfo.creatorRewards || 0),
+                        totalContributions: safeBigInt(poolInfo.totalContributions || 0),
+                        totalPayouts: safeBigInt(poolInfo.totalPayouts || 0),
                         joined,
                         canJoin,
                         canContribute
@@ -962,12 +1006,12 @@ const Dashboard = () => {
                                     const totalMembersStr = pool.totalMembers.toString();
                                     const maxMembersStr = pool.maxMembers.toString();
                                     const cycleDurationDays = Number(pool.cycleDuration) / 86400;
-                                    const contributionEth = ethers.formatEther(pool.contributionAmount.toString());
+                                    const contributionEth = safeFormatEther(pool.contributionAmount); // FIXED: Use safeFormatEther
                                     const contributionUSD = parseFloat(contributionEth) * 1600;
                                     const action = getPoolAction(pool);
                                     const completionPercentage = (Number(pool.totalMembers) / Number(pool.maxMembers)) * 100;
                                     const isCreator = account && pool.creator.toLowerCase() === account.toLowerCase();
-                                    const creatorRewardsEth = pool.creatorRewards ? ethers.formatEther(pool.creatorRewards.toString()) : "0";
+                                    const creatorRewardsEth = pool.creatorRewards ? safeFormatEther(pool.creatorRewards) : "0"; // FIXED: Use safeFormatEther
 
                                     return _jsx(motion.div, {
                                         variants: itemVariants,
