@@ -63,7 +63,8 @@ const safeFormatEther = (value) => {
     const bigIntValue = safeBigInt(value);
     return ethers.formatEther(bigIntValue);
   } catch (error) {
-    console.warn('Failed to format ether:', value, error);
+    // Silently handle ether formatting errors
+    // console.warn('Failed to format ether:', value, error);
     return '0';
   }
 };
@@ -91,6 +92,7 @@ const Dashboard = () => {
             const network = await provider.getNetwork();
             const chainId = Number(network.chainId);
             
+            // Only return addresses for known networks where ULT token is deployed
             if (chainId === 50312) {
                 return {
                     ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
@@ -100,14 +102,15 @@ const Dashboard = () => {
                     ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
                 };
             } else {
-                return {
-                    ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
-                };
+                // For unknown networks, don't provide a default address
+                // This will prevent trying to call a contract that doesn't exist
+                console.warn(`ULT token not available on network ${chainId}`);
+                return null;
             }
         } catch (error) {
-            return {
-                ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
-            };
+            // Silently handle network detection errors
+            // console.error("Error detecting network:", error);
+            return null;
         }
     };
 
@@ -116,9 +119,24 @@ const Dashboard = () => {
     ];
 
     const getULTContract = async () => {
-        if (!window.ethereum || !addresses) return null;
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        return new ethers.Contract(addresses.ultToken, ULT_ABI, provider);
+        try {
+            if (!window.ethereum || !addresses || !addresses.ultToken) return null;
+            
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            
+            // Check if contract exists at the address
+            const code = await provider.getCode(addresses.ultToken);
+            if (code === '0x') {
+                // Contract doesn't exist at this address
+                return null;
+            }
+            
+            return new ethers.Contract(addresses.ultToken, ULT_ABI, provider);
+        } catch (error) {
+            // Silently handle contract creation errors
+            // console.error("Error creating ULT contract:", error);
+            return null;
+        }
     };
 
     // Initialize addresses
@@ -180,16 +198,36 @@ const Dashboard = () => {
 
     // Fetch ULT balance
     const fetchULTBalance = async () => {
-        if (!account || !addresses) return;
+        if (!account || !addresses || !addresses.ultToken) return;
         
         try {
             const ultContract = await getULTContract();
-            if (!ultContract) return;
+            if (!ultContract) {
+                setUltBalance('0');
+                return;
+            }
+
+            // Additional validation - check if the account address is valid
+            if (!ethers.isAddress(account)) {
+                setUltBalance('0');
+                return;
+            }
 
             const balance = await ultContract.balanceOf(account);
             setUltBalance(ethers.formatEther(balance));
         } catch (error) {
-            console.error("Error fetching ULT balance:", error);
+            // Silently handle specific ULT balance fetch errors
+            if (error.code === 'BAD_DATA' || error.message?.includes('could not decode result data')) {
+                // Contract returned empty data - likely invalid contract address
+                setUltBalance('0');
+            } else if (error.code === 'CALL_EXCEPTION') {
+                // Contract call failed - method doesn't exist or contract error
+                setUltBalance('0');
+            } else {
+                // Other errors - set default value
+                setUltBalance('0');
+            }
+            // console.error("Error fetching ULT balance:", error);
         }
     };
 
@@ -509,9 +547,17 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        if (addresses && account) {
-            fetchULTBalance();
-        }
+        const fetchBalance = async () => {
+            try {
+                if (addresses && addresses.ultToken && account) {
+                    await fetchULTBalance();
+                }
+            } catch (error) {
+                // Silently handle balance fetch errors in useEffect
+                // console.error("Error in ULT balance useEffect:", error);
+            }
+        };
+        fetchBalance();
     }, [addresses, account]);
 
     useEffect(() => {
@@ -521,11 +567,16 @@ const Dashboard = () => {
 
     // Auto-refresh data every 30 seconds
     useEffect(() => {
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             if (contract) {
-                fetchRecentActivity();
-                if (account && addresses) {
-                    fetchULTBalance();
+                try {
+                    await fetchRecentActivity();
+                    if (account && addresses && addresses.ultToken) {
+                        await fetchULTBalance();
+                    }
+                } catch (error) {
+                    // Silently handle auto-refresh errors
+                    // console.error("Error in auto-refresh:", error);
                 }
             }
         }, 30000);
@@ -625,8 +676,8 @@ const Dashboard = () => {
                                 ] 
                             }),
                             
-                            // ULT Balance Display for Connected Users
-                            account && _jsx(motion.div, {
+                            // ULT Balance Display for Connected Users (only show if ULT token is available)
+                            account && addresses && addresses.ultToken && _jsx(motion.div, {
                                 className: "bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-6 max-w-md mx-auto border border-white/20",
                                 initial: { opacity: 0, scale: 0.8 },
                                 animate: { opacity: 1, scale: 1 },
@@ -1142,8 +1193,8 @@ const Dashboard = () => {
                                                                 ] 
                                                             }),
 
-                                                            // ULT Balance & Claim Section
-                                                            account && pool.joined && !isCreator && 
+                                                            // ULT Balance & Claim Section (only show if ULT token is available)
+                                                            account && pool.joined && !isCreator && addresses && addresses.ultToken && 
                                                                 _jsx("div", { 
                                                                     className: "mb-4", 
                                                                     children: _jsx(UltBalanceAndClaim, { poolId: poolIdStr }) 
