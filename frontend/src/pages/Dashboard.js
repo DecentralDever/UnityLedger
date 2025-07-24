@@ -189,7 +189,7 @@ const Dashboard = () => {
             const balance = await ultContract.balanceOf(account);
             setUltBalance(ethers.formatEther(balance));
         } catch (error) {
-            console.error("Error fetching ULT balance:", error);
+           // console.error("Error fetching ULT balance:", error);
         }
     };
 
