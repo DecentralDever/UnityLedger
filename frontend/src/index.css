@@ -1,5 +1,8 @@
 @import "tailwindcss";
-/* Custom CSS Variables */
+
+/* ============================================
+   CUSTOM CSS VARIABLES
+   ============================================ */
 :root {
   --primary: #4f46e5;
   --primary-dark: #4338ca;
@@ -27,6 +30,9 @@
   --input: #1e293b;
 }
 
+/* ============================================
+   BASE STYLES
+   ============================================ */
 @layer base {
   body {
     @apply bg-[var(--background)] text-[var(--foreground)];
@@ -34,8 +40,21 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Remove focus outline but keep accessibility */
+  *:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+  }
 }
 
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
 @layer components {
   .btn-primary {
     @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
@@ -54,7 +73,9 @@
   }
 }
 
-/* Animations */
+/* ============================================
+   BASIC ANIMATIONS
+   ============================================ */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -83,7 +104,188 @@
   animation: float 3s ease-in-out infinite;
 }
 
-/* Glassmorphism */
+/* ============================================
+   PREMIUM BANK CARD ANIMATIONS
+   ============================================ */
+
+/* Shimmer animation for progress bars and card effects */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Holographic shine keyframes */
+@keyframes holographic-shine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.holographic-shine {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: holographic-shine 3s infinite;
+}
+
+/* Gradient animation for card backgrounds */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Pulse glow effect */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Rotate slow for loading indicators */
+@keyframes rotate-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 10s linear infinite;
+}
+
+/* Card flip animation */
+@keyframes card-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(180deg);
+  }
+}
+
+.animate-card-flip {
+  animation: card-flip 0.6s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+/* Glowing border animation */
+@keyframes glowing-border {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+  }
+}
+
+.animate-glowing-border {
+  animation: glowing-border 2s ease-in-out infinite;
+}
+
+/* Text gradient animation */
+@keyframes text-gradient {
+  0%, 100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
+.animate-text-gradient {
+  background-size: 200% auto;
+  animation: text-gradient 3s linear infinite;
+}
+
+/* Bounce subtle for hover effects */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 1s ease-in-out infinite;
+}
+
+/* Scale pulse for attention */
+@keyframes scale-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-scale-pulse {
+  animation: scale-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   3D EFFECTS & TRANSFORMS
+   ============================================ */
+
+/* 3D Perspective for card hover effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1500 {
+  perspective: 1500px;
+}
+
+/* Transform GPU acceleration for better performance */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ============================================
+   GLASSMORPHISM & BACKDROP EFFECTS
+   ============================================ */
+
+/* Original glassmorphism */
 .glass {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -96,12 +298,106 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Enhanced glass effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-effect-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Backdrop blur utility classes */
+.backdrop-blur-xs {
+  backdrop-filter: blur(2px);
+}
+
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(12px);
+}
+
+.backdrop-blur-xl {
+  backdrop-filter: blur(16px);
+}
+
+.backdrop-blur-2xl {
+  backdrop-filter: blur(24px);
+}
+
+.backdrop-blur-3xl {
+  backdrop-filter: blur(40px);
+}
+
+/* ============================================
+   GRADIENT & TEXT EFFECTS
+   ============================================ */
+
 /* Gradient text for special emphasis */
 .gradient-text {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600;
 }
 
-/* Pill badges */
+/* Neon glow effects */
+.neon-glow-blue {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8),
+               0 0 20px rgba(59, 130, 246, 0.6),
+               0 0 30px rgba(59, 130, 246, 0.4);
+}
+
+.neon-glow-purple {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.8),
+               0 0 20px rgba(168, 85, 247, 0.6),
+               0 0 30px rgba(168, 85, 247, 0.4);
+}
+
+.neon-glow-pink {
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.8),
+               0 0 20px rgba(236, 72, 153, 0.6),
+               0 0 30px rgba(236, 72, 153, 0.4);
+}
+
+/* ============================================
+   METALLIC GRADIENTS (Bank Card)
+   ============================================ */
+
+.metallic-gold {
+  background: linear-gradient(
+    135deg,
+    #f6d365 0%,
+    #fda085 25%,
+    #f6d365 50%,
+    #fda085 75%,
+    #f6d365 100%
+  );
+}
+
+.metallic-silver {
+  background: linear-gradient(
+    135deg,
+    #e0e0e0 0%,
+    #f5f5f5 25%,
+    #e0e0e0 50%,
+    #f5f5f5 75%,
+    #e0e0e0 100%
+  );
+}
+
+/* ============================================
+   BADGES & PILLS
+   ============================================ */
+
 .badge {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
@@ -118,29 +414,109 @@
   @apply bg-yellow-100 text-yellow-800;
 }
 
-/* Custom scrollbar */
+/* ============================================
+   SHADOWS & ELEVATION
+   ============================================ */
+
+/* Card elevation shadows */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
+}
+
+.shadow-4xl {
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.4);
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
+  background: rgba(100, 100, 100, 0.5);
+  border-radius: 10px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: rgba(100, 100, 100, 0.7);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: rgba(200, 200, 200, 0.3);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: rgba(200, 200, 200, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS (Extra Small)
+   ============================================ */
+
+@media (min-width: 475px) {
+  .xs\:block {
+    display: block;
+  }
+  
+  .xs\:hidden {
+    display: none;
+  }
+  
+  .xs\:inline {
+    display: inline;
+  }
+  
+  .xs\:flex {
+    display: flex;
+  }
+}
+
+/* ============================================
+   DARK MODE ENHANCEMENTS
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY & REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

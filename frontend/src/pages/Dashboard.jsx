@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { 
-  Sparkles, ArrowRight, TrendingUp, PieChart, Users, DollarSign, Clock, Gift, AlertCircle, Plus, Activity, Star, Zap, Award, Coins, RefreshCw, ChevronRight, Shield, Target, Wallet, BarChart3, ArrowUp, ArrowDown, Settings, Bell, Search, Filter, Calendar, Download, Share, BookOpen, Compass, Menu, X, Play, Pause, Volume2, VolumeX, RotateCcw, Bookmark, Heart, MessageCircle, Send, Copy, ExternalLink, Info, HelpCircle, Lightbul, Cpu, Database, Cloud, Lock, Unlock, Trash2, Edit3, Save, Upload, Image, Video, Music, FileText, Folder, Hash
+  Sparkles, ArrowRight, TrendingUp, PieChart, Users, DollarSign, Clock, Gift, AlertCircle, Plus, Activity, Star, Zap, Award, Coins, RefreshCw, ChevronRight, Shield, Target, Wallet, BarChart3, ArrowUp, ArrowDown, Settings, Bell, Search, Filter, Calendar, Download, Share, BookOpen, Compass, Menu, X, Play, Pause, Volume2, VolumeX, RotateCcw, Bookmark, Heart, MessageCircle, Send, Copy, ExternalLink, Info, HelpCircle, Lightbulb, Cpu, Database, Cloud, Lock, Unlock, Trash2, Edit3, Save, Upload, Image, Video, Music, FileText, Folder, Hash, CreditCard, Smartphone
 } from "lucide-react";
 import { useUnityLedgerContract } from "../services/contract";
 import { useWallet } from "../context/WalletProvider";
@@ -18,7 +18,6 @@ const safeBigInt = (value) => {
   
   let str = value.toString();
   
-  // Fix scientific notation (e.g., "1.260913e+21")
   if (str.includes('e+')) {
     const num = parseFloat(str);
     if (!isNaN(num)) {
@@ -26,18 +25,15 @@ const safeBigInt = (value) => {
     }
   }
   
-  // Remove decimal points
   if (str.includes('.')) {
     str = str.split('.')[0];
   }
   
-  // Clean up and keep only digits
   str = str.replace(/[^0-9]/g, '');
   
   return str ? BigInt(str) : BigInt(0);
 };
 
-// BIGINT FIX: Safe ether formatting
 const safeFormatEther = (value) => {
   try {
     const bigIntValue = safeBigInt(value);
@@ -48,7 +44,27 @@ const safeFormatEther = (value) => {
   }
 };
 
-// Wallet Connection Modal Component - MOBILE OPTIMIZED
+// Bank Card Chip Component
+const CardChip = () => (
+  <div className="relative w-10 h-8 sm:w-12 sm:h-10 rounded-md bg-gradient-to-br from-yellow-200 via-yellow-300 to-yellow-400 shadow-lg overflow-hidden">
+    <div className="absolute inset-0 grid grid-cols-3 gap-[1px] p-1">
+      {[...Array(9)].map((_, i) => (
+        <div key={i} className="bg-yellow-600/20 rounded-[1px]" />
+      ))}
+    </div>
+    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/30 to-transparent" />
+  </div>
+);
+
+// Contactless Payment Icon
+const ContactlessIcon = () => (
+  <svg className="w-6 h-6 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none">
+    <path d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+// Wallet Connection Modal Component
 const WalletConnectionModal = ({ isOpen, onConnect, onClose, error, isConnecting, needsNetworkSwitch, targetNetwork, onSwitchNetwork }) => {
   if (!isOpen) return null;
 
@@ -127,14 +143,12 @@ const Dashboard = () => {
   const { account, connect } = useWallet();
   const { isDark } = useTheme();
 
-  // Wallet connection states
+  // All state declarations
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletConnecting, setWalletConnecting] = useState(false);
   const [walletError, setWalletError] = useState(null);
   const [needsNetworkSwitch, setNeedsNetworkSwitch] = useState(false);
   const [targetNetwork, setTargetNetwork] = useState(null);
-
-  // App states
   const [poolCount, setPoolCount] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pools, setPools] = useState([]);
@@ -147,12 +161,10 @@ const Dashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Optimized refs
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
 
-  // Network configuration
   const SUPPORTED_NETWORKS = useMemo(() => ({
     50312: {
       name: "Somnia",
@@ -174,7 +186,6 @@ const Dashboard = () => {
 
   const PREFERRED_NETWORK = useMemo(() => SUPPORTED_NETWORKS[4202], [SUPPORTED_NETWORKS]);
 
-  // Check if wallet connection is required
   useEffect(() => {
     if (!account) {
       setShowWalletModal(true);
@@ -183,10 +194,8 @@ const Dashboard = () => {
     }
   }, [account]);
 
-  // Network checking functions
   const checkNetwork = useCallback(async () => {
     if (!window.ethereum) return false;
-
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
@@ -197,7 +206,6 @@ const Dashboard = () => {
         setNeedsNetworkSwitch(true);
         return false;
       }
-
       setNeedsNetworkSwitch(false);
       return true;
     } catch (error) {
@@ -208,13 +216,11 @@ const Dashboard = () => {
 
   const switchNetwork = useCallback(async (targetNet = PREFERRED_NETWORK) => {
     if (!window.ethereum) return false;
-
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: targetNet.chainId }],
       });
-      
       setNeedsNetworkSwitch(false);
       return true;
     } catch (switchError) {
@@ -241,21 +247,17 @@ const Dashboard = () => {
     }
   }, [PREFERRED_NETWORK]);
 
-  // Wallet connection handler
   const handleWalletConnect = useCallback(async () => {
     setWalletConnecting(true);
     setWalletError(null);
-    
     try {
       if (!window.ethereum) {
         throw new Error("Please install MetaMask or another Web3 wallet.");
       }
-
       const networkOk = await checkNetwork();
       if (!networkOk && needsNetworkSwitch) {
         return;
       }
-
       const result = await connect();
       if (result) {
         setShowWalletModal(false);
@@ -271,36 +273,25 @@ const Dashboard = () => {
     }
   }, [connect, checkNetwork, needsNetworkSwitch]);
 
-  // Get network addresses
   const getNetworkAddresses = async () => {
     if (!window.ethereum) return null;
-    
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
       
       if (chainId === 50312) {
-        return {
-          ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
-        };
+        return { ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f" };
       } else if (chainId === 4202) {
-        return {
-          ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
-        };
+        return { ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228" };
       } else {
-        return {
-          ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
-        };
+        return { ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228" };
       }
     } catch (error) {
-      return {
-        ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
-      };
+      return { ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228" };
     }
   };
 
-  // Initialize addresses based on current network
   useEffect(() => {
     const initAddresses = async () => {
       if (account) {
@@ -308,11 +299,9 @@ const Dashboard = () => {
         setAddresses(addresses);
       }
     };
-    
     initAddresses();
   }, [account]);
 
-  // Optimized Canvas Background - MOBILE OPTIMIZED (fewer particles on mobile)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || showWalletModal) return;
@@ -324,10 +313,8 @@ const Dashboard = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-
     resizeCanvas();
 
-    // Fewer particles on mobile for better performance
     const isMobile = window.innerWidth < 768;
     const particleCount = isMobile ? 25 : 50;
 
@@ -335,7 +322,7 @@ const Dashboard = () => {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5, // Slower movement on mobile
+        vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         size: Math.random() * 2 + 1,
         opacity: Math.random() * 0.3 + 0.1,
@@ -344,27 +331,21 @@ const Dashboard = () => {
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
       particles.forEach((particle) => {
         particle.x += particle.vx;
         particle.y += particle.vy;
-        
         if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
         if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
-        
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(59, 130, 246, ${particle.opacity})`;
         ctx.fill();
       });
-      
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
     animate();
 
     window.addEventListener('resize', resizeCanvas);
-    
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       if (animationFrameRef.current) {
@@ -381,7 +362,6 @@ const Dashboard = () => {
     return new ethers.Contract(addresses.ultToken, ULT_ABI, provider);
   }, [addresses, ULT_ABI]);
 
-  // Stats state with memoized default
   const [stats, setStats] = useState(() => ({
     tvl: "0",
     activePools: "0",
@@ -390,14 +370,11 @@ const Dashboard = () => {
     ultMarketCap: "0"
   }));
 
-  // Fetch ULT balance
   const fetchULTBalance = useCallback(async () => {
     if (!account || !addresses) return;
-    
     try {
       const ultContract = await getULTContract();
       if (!ultContract) return;
-
       const balance = await ultContract.balanceOf(account);
       setUltBalance(ethers.formatEther(balance));
     } catch (error) {
@@ -405,10 +382,8 @@ const Dashboard = () => {
     }
   }, [account, addresses, getULTContract]);
 
-  // Fetch recent activity
   const fetchRecentActivity = useCallback(async () => {
     if (!contract) return;
-    
     setActivitiesLoading(true);
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -453,13 +428,11 @@ const Dashboard = () => {
           try {
             const block = await provider.getBlock(event.blockNumber);
             const timeAgo = Math.floor((Date.now() - block.timestamp * 1000) / 1000);
-            
             let timeString = "";
             if (timeAgo < 60) timeString = "Just now";
             else if (timeAgo < 3600) timeString = `${Math.floor(timeAgo / 60)}m ago`;
             else if (timeAgo < 86400) timeString = `${Math.floor(timeAgo / 3600)}h ago`;
             else timeString = `${Math.floor(timeAgo / 86400)}d ago`;
-
             return {
               ...event,
               time: timeString,
@@ -476,7 +449,6 @@ const Dashboard = () => {
           }
         })
       );
-
       setActivities(activitiesWithTime);
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -498,24 +470,19 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Calculate stats
   const calculateStats = useCallback((poolsData) => {
     const activePools = poolsData.filter(p => p.isActive).length;
     const totalMembers = poolsData.reduce((sum, p) => sum + Number(p.totalMembers), 0);
-    
     const tvlWei = poolsData.reduce((sum, p) => {
       const contribution = Number(p.contributionAmount) || 0;
       const members = Number(p.totalMembers) || 0;
       return sum + (contribution * members);
     }, 0);
-    
     const tvlEth = safeFormatEther(tvlWei.toString());
     const tvlUsd = (parseFloat(tvlEth) * 1600).toFixed(0);
-    
     const avgYield = poolsData.length > 0 
       ? poolsData.reduce((sum, p) => sum + Number(p.fee || 0), 0) / poolsData.length
       : 0;
-
     const ultSupply = 1000000000;
     const ultMarketCap = (ultSupply * parseFloat(ultPrice)).toFixed(0);
 
@@ -528,46 +495,35 @@ const Dashboard = () => {
     });
   }, [ultPrice]);
 
-  // Pool action handlers
   const getPoolAction = useCallback((pool) => {
     if (!account) {
       return { text: "Connect Wallet", disabled: true, variant: "secondary" };
     }
-    
     const isCreator = pool.creator.toLowerCase() === account.toLowerCase();
-    
     if (isCreator && !pool.joined && pool.currentCycle === BigInt(0) && Number(pool.totalMembers) < Number(pool.maxMembers)) {
       return { text: "Join Your Pool", disabled: false, variant: "success" };
     }
-    
     if (isCreator && pool.joined && pool.canContribute) {
       return { text: "Contribute", disabled: false, variant: "primary" };
     }
-    
     if (pool.canJoin) {
       return { text: "Join Pool", disabled: false, variant: "success" };
     }
-    
     if (pool.canContribute) {
       return { text: "Contribute", disabled: false, variant: "primary" };
     }
-    
     if (pool.joined) {
       return { text: "View Details", disabled: false, variant: "secondary" };
     }
-    
     if (isCreator) {
       return { text: "Manage Pool", disabled: false, variant: "primary" };
     }
-    
     if (!pool.isActive) {
       return { text: "Inactive", disabled: true, variant: "secondary" };
     }
-    
     if (Number(pool.totalMembers) >= Number(pool.maxMembers)) {
       return { text: "Pool Full", disabled: true, variant: "secondary" };
     }
-    
     return { text: "Started", disabled: true, variant: "secondary" };
   }, [account]);
 
@@ -575,12 +531,9 @@ const Dashboard = () => {
     if (action.text === "View Details") {
       return;
     }
-    
     e.preventDefault();
     e.stopPropagation();
-    
     if (!contract || !account) return;
-    
     try {
       if (action.text === "Join Your Pool" || action.text === "Join Pool") {
         const tx = await contract.joinPool(Number(pool.id));
@@ -600,11 +553,9 @@ const Dashboard = () => {
 
   const getButtonClasses = useCallback((variant, disabled) => {
     const base = "w-full mt-3 sm:mt-4 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 transform";
-    
     if (disabled) {
       return `${base} bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed`;
     }
-    
     switch (variant) {
       case "success":
         return `${base} bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-emerald-200/50 dark:hover:shadow-emerald-900/20 active:scale-95`;
@@ -615,7 +566,6 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Fetch user data
   const fetchUserData = useCallback(async () => {
     if (!contract) {
       setIsLoading(false);
@@ -623,45 +573,37 @@ const Dashboard = () => {
       setPoolCount(0);
       return;
     }
-
     setIsLoading(true);
     setError(null);
-    
     try {
       const nextPoolId = await contract.nextPoolId();
       const total = Number(nextPoolId);
       setPoolCount(total);
-
       if (total === 0) {
         setPools([]);
         setIsLoading(false);
         return;
       }
-
       const poolDetailsArray = await Promise.all(
         Array.from({ length: total }, (_, i) => contract.getPoolDetails(i))
       );
-
       const formattedPools = await Promise.all(
         poolDetailsArray.map(async (poolInfo) => {
           let joined = false;
           let canJoin = false;
           let canContribute = false;
-
           if (account) {
             try {
               const members = await contract.getPoolMembers(poolInfo.id);
               joined = members.some((member) =>
                 member.wallet.toLowerCase() === account.toLowerCase()
               );
-
               canJoin = await contract.canJoinPool(poolInfo.id, account);
               canContribute = await contract.canContribute(poolInfo.id, account);
             } catch (memberError) {
               console.warn("Error checking membership for pool", poolInfo.id, memberError);
             }
           }
-
           return {
             id: safeBigInt(poolInfo.id),
             creator: poolInfo.creator,
@@ -684,21 +626,17 @@ const Dashboard = () => {
           };
         })
       );
-
       setPools(formattedPools);
       calculateStats(formattedPools);
     } catch (error) {
       console.error("Error fetching pools:", error);
       setError("Failed to fetch pool data");
     }
-    
     setIsLoading(false);
   }, [contract, account, calculateStats]);
 
-  // Manual refresh
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    
     try {
       await Promise.all([
         fetchUserData(),
@@ -708,11 +646,9 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Refresh failed:", error);
     }
-    
     setRefreshing(false);
   }, [fetchUserData, fetchRecentActivity, fetchULTBalance, account, addresses]);
 
-  // Effects
   useEffect(() => {
     if (addresses && account) {
       fetchULTBalance();
@@ -726,7 +662,6 @@ const Dashboard = () => {
     }
   }, [contract, account, fetchUserData, fetchRecentActivity]);
 
-  // Memoized stats data - MOBILE OPTIMIZED
   const statsData = useMemo(() => [
     {
       title: "Total Value Locked",
@@ -775,7 +710,6 @@ const Dashboard = () => {
     }
   ], [stats]);
 
-  // Optimized Stat Card Component - MOBILE OPTIMIZED
   const StatCard = React.memo(({ stat, index }) => {
     const cardRef = useRef(null);
     const isInView = useInView(cardRef, { once: true, threshold: 0.3 });
@@ -797,7 +731,6 @@ const Dashboard = () => {
             <div className={`${stat.bg} p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-md`}>
               {stat.icon}
             </div>
-            
             <div className={`text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${stat.badgeColor} flex items-center gap-1`}>
               {stat.change.includes('%') ? (
                 stat.change.includes('+') ? <ArrowUp size={8} className="sm:w-2.5 sm:h-2.5 text-emerald-600" /> : <ArrowDown size={8} className="sm:w-2.5 sm:h-2.5 text-red-600" />
@@ -808,7 +741,6 @@ const Dashboard = () => {
               <span className="xs:hidden">{stat.change.replace('Verified', '✓')}</span>
             </div>
           </div>
-          
           <div className="mb-3 sm:mb-4">
             <p className="text-gray-500 dark:text-gray-400 text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1 uppercase tracking-wide line-clamp-1">
               {stat.title}
@@ -816,7 +748,6 @@ const Dashboard = () => {
             <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
               {stat.value}
             </h3>
-            
             <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs mt-1.5 sm:mt-2">
               <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-400 rounded-full animate-pulse" />
               <span className="text-gray-500">Live Data</span>
@@ -827,7 +758,6 @@ const Dashboard = () => {
     );
   });
 
-  // Animation variants
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: { 
@@ -850,7 +780,46 @@ const Dashboard = () => {
     }
   }), []);
 
-  // Show wallet modal if not connected
+  // Card gradient themes
+  const cardThemes = [
+    {
+      gradient: "from-indigo-500 via-purple-500 to-pink-500",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-indigo-500/20",
+      brand: "UnityLedger"
+    },
+    {
+      gradient: "from-blue-600 via-cyan-500 to-teal-500",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-blue-500/20",
+      brand: "Savings Pool"
+    },
+    {
+      gradient: "from-violet-600 via-purple-600 to-fuchsia-600",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-purple-500/20",
+      brand: "Premium"
+    },
+    {
+      gradient: "from-emerald-500 via-green-500 to-teal-600",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-emerald-500/20",
+      brand: "Active"
+    },
+    {
+      gradient: "from-orange-500 via-amber-500 to-yellow-500",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-amber-500/20",
+      brand: "Gold"
+    },
+    {
+      gradient: "from-rose-500 via-pink-500 to-red-500",
+      shine: "from-white/20 via-white/40 to-transparent",
+      glow: "shadow-rose-500/20",
+      brand: "Elite"
+    }
+  ];
+
   if (!account) {
     return (
       <>
@@ -888,7 +857,6 @@ const Dashboard = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -931,14 +899,13 @@ const Dashboard = () => {
           : 'radial-gradient(ellipse at top, rgba(59, 130, 246, 0.05) 0%, transparent 50%), radial-gradient(ellipse at bottom, rgba(147, 51, 234, 0.05) 0%, transparent 50%)'
       }}
     >
-      {/* Canvas Background */}
       <canvas
         ref={canvasRef}
         className="fixed inset-0 pointer-events-none z-0"
         style={{ mixBlendMode: isDark ? 'screen' : 'multiply' }}
       />
 
-      {/* Floating Action Menu - MOBILE OPTIMIZED */}
+      {/* Floating Action Menu */}
       <motion.div
         className="fixed bottom-4 sm:bottom-6 md:bottom-8 right-4 sm:right-6 md:right-8 z-40"
         initial={{ scale: 0 }}
@@ -959,11 +926,10 @@ const Dashboard = () => {
         </motion.button>
       </motion.div>
 
-      {/* Sidebar - MOBILE OPTIMIZED */}
+      {/* Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
-            {/* Backdrop for mobile */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1027,120 +993,298 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section - MOBILE OPTIMIZED */}
+      {/* Hero Section - Premium Bank Card Design */}
       <motion.section 
-        className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 md:mb-8"
+        className="relative rounded-2xl sm:rounded-3xl overflow-hidden mb-6 sm:mb-8 md:mb-12 perspective-1000"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
       >
-        <div className={`absolute inset-0 ${isDark 
-          ? "bg-gradient-to-r from-indigo-600/80 via-purple-600/80 to-pink-600/80"
-          : "bg-gradient-to-r from-indigo-500/90 via-purple-500/90 to-pink-500/90"} backdrop-blur-xl`}
-        />
-        
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 bg-yellow-300/20 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 sm:w-64 sm:h-64 bg-pink-300/20 rounded-full blur-2xl" />
-        </div>
-        
-        <div className="relative z-10 py-6 sm:py-8 px-4 sm:px-6 text-center">
-          <div className="flex flex-col items-center gap-4 sm:gap-6">
-            <div className="flex-1 w-full text-center sm:text-left">
-              <motion.div 
-                className="inline-flex items-center gap-1.5 sm:gap-2 bg-white/15 backdrop-blur rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-white text-xs sm:text-sm font-medium mb-2 sm:mb-3 border border-white/20"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
-                <Sparkles size={14} className="sm:w-4 sm:h-4 text-yellow-300" />
-                <span>Decentralized Savings</span>
-              </motion.div>
-              
-              <motion.h1 
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2 sm:mb-3 leading-tight"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-              >
-                Welcome to{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-300">
-                  UnityLedger
-                </span>
-              </motion.h1>
-              
-              <motion.p 
-                className="text-sm sm:text-base lg:text-lg text-white/80 mb-3 sm:mb-4 max-w-lg mx-auto sm:mx-0"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-              >
-                Build wealth together with{" "}
-                <span className="text-yellow-300 font-semibold">automated payouts</span> and{" "}
-                <span className="text-pink-300 font-semibold">ULT rewards</span>
-              </motion.p>
+        <motion.div
+          whileHover={{ 
+            scale: 1.01,
+            rotateY: 1,
+            rotateX: -1,
+            transition: { duration: 0.3 }
+          }}
+          className="relative transform-gpu"
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          {/* Premium Gradient Background */}
+          <div className={`absolute inset-0 ${isDark 
+            ? "bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"
+            : "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"}`}
+          />
+          
+          {/* Holographic Shine Effect */}
+          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-700">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-white/20 transform -skew-x-12 translate-x-[-100%] hover:translate-x-[200%] transition-transform duration-1500 ease-out" />
+          </div>
 
-              <motion.div
-                className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.6 }}
-              >
-                <Link
-                  to="/join-create"
-                  className="group bg-white/15 backdrop-blur hover:bg-white/25 text-white border border-white/30 hover:border-white/50 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-lg hover:shadow-xl"
-                >
-                  <Plus size={14} className="sm:w-4 sm:h-4" />
-                  Create Pool
-                </Link>
-                <Link
-                  to="/faucet"
-                  className="group bg-yellow-400/20 backdrop-blur hover:bg-yellow-400/30 text-white border border-yellow-300/30 hover:border-yellow-300/50 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-lg hover:shadow-xl"
-                >
-                  <Gift size={14} className="sm:w-4 sm:h-4" />
-                  Get ULT
-                </Link>
-              </motion.div>
-            </div>
-            
-            {/* Compact ULT Balance + Logo - MOBILE OPTIMIZED */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-              <motion.div
-                className="relative"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-              >
-                <img 
-                  src="/images/UL.png"
-                  alt="UnityLedger Logo"
-                  className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 filter drop-shadow-xl"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/30 to-pink-400/30 rounded-full blur-xl" />
-              </motion.div>
+          {/* Glossy Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20 pointer-events-none" />
+          
+          {/* Card Pattern/Texture */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)'
+            }} />
+          </div>
 
-              {account && (
+          {/* Ambient Glow Effects */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-yellow-300/30 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-56 h-56 sm:w-80 sm:h-80 bg-pink-300/30 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-96 sm:h-96 bg-purple-300/20 rounded-full blur-3xl" />
+          </div>
+          
+          <div className="relative z-10 py-8 sm:py-10 md:py-12 px-6 sm:px-8 md:px-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center">
+              {/* Left Side - Card Information */}
+              <div className="space-y-6">
+                {/* Card Brand & Chip */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="space-y-4">
+                    {/* Bank/Brand Name */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="font-black text-2xl sm:text-3xl text-white tracking-wider drop-shadow-lg">
+                        UNITYLEDGER
+                      </div>
+                    </motion.div>
+                    
+                    {/* EMV Chip */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <CardChip />
+                    </motion.div>
+                  </div>
+
+                  {/* Contactless Icon */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-white/70"
+                  >
+                    <ContactlessIcon />
+                  </motion.div>
+                </div>
+
+                {/* Card Type Badge */}
                 <motion.div
-                  className="bg-white/15 backdrop-blur rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-white/20 min-w-[160px] sm:min-w-[180px]"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6, duration: 0.5 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/30"
                 >
-                  <div className="text-center text-white">
-                    <p className="text-[10px] sm:text-xs text-white/70 mb-0.5 sm:mb-1">Your ULT Balance</p>
-                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                      <Coins size={14} className="sm:w-[18px] sm:h-[18px] text-yellow-300" />
-                      <p className="text-base sm:text-lg font-bold">{parseFloat(ultBalance).toFixed(3)} ULT</p>
+                  <Sparkles size={16} className="text-yellow-300" />
+                  <span className="text-white text-sm font-semibold tracking-wide">DECENTRALIZED SAVINGS</span>
+                </motion.div>
+
+                {/* Card Number (Stylized) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-2"
+                >
+                  <div className="font-mono text-xl sm:text-2xl md:text-3xl tracking-[0.3em] font-medium text-white drop-shadow-lg">
+                    {"•••• •••• •••• " + (account ? account.slice(-4) : "****")}
+                  </div>
+                  <div className="text-xs sm:text-sm text-white/60 font-medium tracking-wider">
+                    MEMBER CARD
+                  </div>
+                </motion.div>
+
+                {/* Card Holder Info */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="space-y-1"
+                >
+                  <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium">
+                    Card Holder
+                  </div>
+                  <div className="text-base sm:text-lg font-semibold text-white tracking-wide">
+                    {account ? `${account.slice(0, 10)}...${account.slice(-8)}` : "Connect Wallet"}
+                  </div>
+                </motion.div>
+
+                {/* Valid Thru / Expiry (Decorative) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center gap-8"
+                >
+                  <div>
+                    <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium mb-1">
+                      Valid Thru
+                    </div>
+                    <div className="text-sm sm:text-base font-semibold text-white tracking-wider">
+                      ∞
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium mb-1">
+                      Network
+                    </div>
+                    <div className="text-sm sm:text-base font-semibold text-white tracking-wider">
+                      WEB3
                     </div>
                   </div>
                 </motion.div>
-              )}
+
+                {/* Action Buttons */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="flex flex-wrap gap-3 pt-2"
+                >
+                  <Link
+                    to="/join-create"
+                    className="group bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/40 hover:border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+                  >
+                    <Plus size={18} />
+                    <span>Create Pool</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                  <Link
+                    to="/faucet"
+                    className="group bg-yellow-400/25 backdrop-blur-md hover:bg-yellow-400/35 text-white border border-yellow-300/40 hover:border-yellow-300/60 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+                  >
+                    <Gift size={18} />
+                    <span>Get ULT</span>
+                  </Link>
+                </motion.div>
+              </div>
+
+              {/* Right Side - Welcome Message & Balance */}
+              <div className="space-y-6 lg:pl-8">
+                {/* Welcome Message */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-3"
+                >
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight drop-shadow-2xl">
+                    Welcome to{" "}
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-pink-300">
+                      UnityLedger
+                    </span>
+                  </h1>
+                  
+                  <p className="text-base sm:text-lg text-white/90 leading-relaxed">
+                    Build wealth together with{" "}
+                    <span className="font-bold text-yellow-200">automated payouts</span> and{" "}
+                    <span className="font-bold text-pink-200">ULT rewards</span>
+                  </p>
+                </motion.div>
+
+                {/* Logo with Glow */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-center gap-4"
+                >
+                  <div className="relative">
+                    <img 
+                      src="/images/UL.png"
+                      alt="UnityLedger Logo"
+                      className="h-16 w-16 sm:h-20 sm:w-20 filter drop-shadow-2xl"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/40 to-pink-400/40 rounded-full blur-2xl animate-pulse" />
+                  </div>
+
+                  {/* Premium Card Badge */}
+                  <div className="bg-gradient-to-r from-yellow-400/20 to-amber-400/20 backdrop-blur-md px-4 py-2 rounded-xl border border-yellow-300/30">
+                    <div className="flex items-center gap-2">
+                      <Award size={20} className="text-yellow-300" />
+                      <div>
+                        <div className="text-[10px] text-yellow-200/80 uppercase tracking-wider font-medium">Premium</div>
+                        <div className="text-sm font-bold text-white">Member</div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ULT Balance Card */}
+                {account && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 shadow-2xl"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-white/70 mb-1 uppercase tracking-wider font-medium">Available Balance</p>
+                        <div className="flex items-baseline gap-2">
+                          <Coins size={24} className="text-yellow-300" />
+                          <p className="text-3xl font-black text-white">{parseFloat(ultBalance).toFixed(3)}</p>
+                          <span className="text-lg font-bold text-white/80">ULT</span>
+                        </div>
+                        <p className="text-xs text-white/60 mt-1">
+                          ≈ ${(parseFloat(ultBalance) * parseFloat(ultPrice) * 1600).toFixed(2)} USD
+                        </p>
+                      </div>
+                      <div className="text-white/40">
+                        <BarChart3 size={48} />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Features List */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="grid grid-cols-2 gap-3"
+                >
+                  {[
+                    { icon: <Shield size={16} />, text: "Secure" },
+                    { icon: <Zap size={16} />, text: "Instant" },
+                    { icon: <Users size={16} />, text: "Community" },
+                    { icon: <TrendingUp size={16} />, text: "Growth" }
+                  ].map((feature, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20"
+                    >
+                      <div className="text-white/80">{feature.icon}</div>
+                      <span className="text-xs font-semibold text-white">{feature.text}</span>
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Corner Accent Decoration */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-white/10 to-transparent rounded-tr-full pointer-events-none" />
+
+          {/* Card Logo/Watermark */}
+          <div className="absolute bottom-6 right-6 opacity-10">
+            <CreditCard size={80} className="text-white" />
+          </div>
+        </motion.div>
       </motion.section>
 
-      {/* Stats Section - MOBILE OPTIMIZED (2 cols on mobile, 3 on tablet, 5 on desktop) */}
+      {/* Stats Section */}
       <motion.section
         variants={containerVariants}
         initial="hidden"
@@ -1152,7 +1296,7 @@ const Dashboard = () => {
         ))}
       </motion.section>
 
-      {/* Navigation Cards - MOBILE OPTIMIZED */}
+      {/* Navigation Cards */}
       <motion.section
         className="mb-6 sm:mb-8 md:mb-12"
         variants={containerVariants}
@@ -1195,9 +1339,7 @@ const Dashboard = () => {
               to={card.to}
               className={`group bg-gradient-to-r ${card.gradient} rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white transition-all duration-300 transform active:scale-95 sm:hover:scale-105 shadow-lg hover:shadow-xl`}
             >
-              <motion.div 
-                variants={itemVariants}
-              >
+              <motion.div variants={itemVariants}>
                 {card.icon}
               </motion.div>
               <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">{card.title}</h3>
@@ -1208,7 +1350,7 @@ const Dashboard = () => {
         </div>
       </motion.section>
 
-      {/* Pools Section - MOBILE OPTIMIZED */}
+      {/* Bank Card Style Pools Section */}
       <motion.section
         variants={containerVariants}
         initial="hidden"
@@ -1221,15 +1363,15 @@ const Dashboard = () => {
                 <div className="bg-gray-200 dark:bg-gray-700 animate-pulse h-8 sm:h-9 w-40 sm:w-48 rounded-xl" />
               ) : (
                 <span className="flex items-center gap-2 sm:gap-3">
-                  <Zap className="text-yellow-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+                  <CreditCard className="text-indigo-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
                   <span className="text-xl sm:text-2xl md:text-3xl">
-                    {poolCount || 0} {poolCount === 1 ? "Pool" : "Pools"}
+                    {poolCount || 0} Savings {poolCount === 1 ? "Pool" : "Pools"}
                   </span>
                 </span>
               )}
             </h2>
             <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Join active savings pools
+              Premium savings pools with bank-grade security
             </p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto">
@@ -1264,24 +1406,19 @@ const Dashboard = () => {
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6"
               key="loading"
               exit={{ opacity: 0 }}
             >
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 h-64 sm:h-72 md:h-80 shadow-lg animate-pulse border border-gray-100 dark:border-gray-700"
+                  className="bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 h-72 sm:h-80 shadow-2xl animate-pulse border border-gray-300 dark:border-gray-600"
                 >
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="bg-gray-200 dark:bg-gray-700 h-5 sm:h-6 w-1/3 rounded-lg" />
-                    <div className="bg-gray-200 dark:bg-gray-700 h-6 sm:h-8 w-2/3 rounded-lg" />
-                    <div className="bg-gray-200 dark:bg-gray-700 h-4 w-1/2 rounded-lg" />
-                    <div className="flex gap-2">
-                      <div className="bg-gray-200 dark:bg-gray-700 h-7 sm:h-8 w-16 sm:w-20 rounded-full" />
-                      <div className="bg-gray-200 dark:bg-gray-700 h-7 sm:h-8 w-14 sm:w-16 rounded-full" />
-                    </div>
-                    <div className="bg-gray-200 dark:bg-gray-700 h-16 sm:h-20 w-full rounded-xl" />
+                  <div className="space-y-4">
+                    <div className="bg-gray-300 dark:bg-gray-600 h-8 w-12 rounded-md" />
+                    <div className="bg-gray-300 dark:bg-gray-600 h-6 w-2/3 rounded-lg" />
+                    <div className="bg-gray-300 dark:bg-gray-600 h-4 w-1/2 rounded-lg" />
                   </div>
                 </div>
               ))}
@@ -1296,13 +1433,13 @@ const Dashboard = () => {
             >
               <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 border-2 border-dashed border-gray-200 dark:border-gray-700 mx-4">
                 <div className="bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-full p-4 sm:p-5 md:p-6 w-fit mx-auto mb-4 sm:mb-5 md:mb-6">
-                  <PieChart className="w-10 h-10 sm:w-12 sm:h-12 text-indigo-600 dark:text-indigo-400" />
+                  <CreditCard className="w-10 h-10 sm:w-12 sm:h-12 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
                   No Pools Available Yet
                 </h3>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto px-4">
-                  Be the pioneer! Create the first savings pool and start building wealth together.
+                  Be the pioneer! Create the first premium savings pool and start building wealth together.
                 </p>
                 <motion.div whileTap={{ scale: 0.95 }}>
                   <Link
@@ -1318,13 +1455,13 @@ const Dashboard = () => {
             </motion.div>
           ) : (
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6"
               key="pools"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {pools.slice(0, 6).map((pool) => {
+              {pools.slice(0, 6).map((pool, idx) => {
                 const poolIdStr = pool.id.toString();
                 const totalMembersStr = pool.totalMembers.toString();
                 const maxMembersStr = pool.maxMembers.toString();
@@ -1333,140 +1470,161 @@ const Dashboard = () => {
                 const action = getPoolAction(pool);
                 const completionPercentage = (Number(pool.totalMembers) / Number(pool.maxMembers)) * 100;
                 const isCreator = account && pool.creator.toLowerCase() === account.toLowerCase();
+                const theme = cardThemes[idx % cardThemes.length];
 
                 return (
                   <motion.div
                     key={poolIdStr}
                     variants={itemVariants}
-                    className="group"
+                    className="group perspective-1000"
                   >
                     <Link to={`/pool/${poolIdStr}`}>
                       <motion.div
+                        whileHover={{ 
+                          scale: 1.02,
+                          rotateY: 2,
+                          rotateX: -2,
+                          transition: { duration: 0.3 }
+                        }}
                         whileTap={{ scale: 0.98 }}
-                        className="bg-gradient-to-br from-white/40 to-white/20 dark:from-gray-800/40 dark:to-gray-900/20 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg hover:shadow-xl border border-white/30 dark:border-gray-700/30 transition-all duration-500 h-full relative overflow-hidden group-hover:border-indigo-300/50 dark:group-hover:border-indigo-600/50"
+                        className={`relative bg-gradient-to-br ${theme.gradient} rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 shadow-2xl hover:shadow-3xl ${theme.glow} transition-all duration-500 overflow-hidden transform-gpu`}
+                        style={{
+                          transformStyle: 'preserve-3d',
+                        }}
                       >
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500">
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-300/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out" />
+                        {/* Holographic Shine Effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                          <div className={`absolute inset-0 bg-gradient-to-br ${theme.shine} transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out`} />
                         </div>
-                        
-                        <div className="relative z-10">
-                          <div className="flex justify-between items-start mb-3 sm:mb-4 md:mb-5">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
-                                <motion.span 
-                                  className="inline-flex items-center px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r from-emerald-100/70 to-emerald-200/70 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200/40 dark:border-emerald-700/40 backdrop-blur-sm"
-                                  whileHover={{ scale: 1.05 }}
-                                >
-                                  Pool #{poolIdStr}
-                                </motion.span>
-                                {pool.joined && (
-                                  <motion.span 
-                                    className="inline-flex items-center px-1.5 sm:px-2 md:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r from-blue-100/70 to-blue-200/70 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-800 dark:text-blue-300 border border-blue-200/40 dark:border-blue-700/40 backdrop-blur-sm"
-                                    whileHover={{ scale: 1.05 }}
-                                  >
-                                    <Star size={8} className="mr-0.5 sm:mr-1" />
-                                    <span className="hidden xs:inline">Joined</span>
-                                    <span className="xs:hidden">✓</span>
-                                  </motion.span>
-                                )}
-                                {isCreator && (
-                                  <motion.span 
-                                    className="inline-flex items-center px-1.5 sm:px-2 md:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r from-amber-100/70 to-amber-200/70 dark:from-amber-900/30 dark:to-amber-800/30 text-amber-800 dark:text-amber-300 border border-amber-200/40 dark:border-amber-700/40 backdrop-blur-sm"
-                                    whileHover={{ scale: 1.05 }}
-                                  >
-                                    <Award size={8} className="mr-0.5 sm:mr-1" />
-                                    <span className="hidden xs:inline">Creator</span>
-                                    <span className="xs:hidden">★</span>
-                                  </motion.span>
-                                )}
+
+                        {/* Glossy Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20 pointer-events-none" />
+
+                        {/* Card Pattern/Texture */}
+                        <div className="absolute inset-0 opacity-10">
+                          <div className="absolute inset-0" style={{
+                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)'
+                          }} />
+                        </div>
+
+                        <div className="relative z-10 text-white h-full flex flex-col">
+                          {/* Card Header */}
+                          <div className="flex justify-between items-start mb-6">
+                            <div className="flex-1">
+                              {/* Brand/Logo */}
+                              <div className="flex items-center gap-2 mb-4">
+                                <div className="font-black text-lg sm:text-xl tracking-wider opacity-90">
+                                  {theme.brand}
+                                </div>
                               </div>
                               
-                              <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
-                                {pool.poolType || "Savings Pool"}
-                              </h3>
-                              
-                              <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium truncate">
-                                {pool.creator.slice(0, 6)}...{pool.creator.slice(-4)}
-                              </p>
+                              {/* Chip */}
+                              <CardChip />
                             </div>
-                            
-                            <motion.div 
-                              className="bg-gradient-to-br from-indigo-100/60 to-purple-100/60 dark:from-indigo-900/30 dark:to-purple-900/30 p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl shadow-md border border-indigo-200/30 dark:border-indigo-700/30 backdrop-blur-sm flex-shrink-0"
-                              whileHover={{ 
-                                scale: 1.1, 
-                                rotate: 8,
-                              }}
-                            >
-                              <PieChart size={16} className="sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
-                            </motion.div>
-                          </div>
-                          
-                          <div className="bg-gradient-to-r from-white/50 to-white/30 dark:from-gray-800/50 dark:to-gray-700/30 backdrop-blur-sm rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 md:mb-5 border border-white/40 dark:border-gray-600/40 shadow-inner">
-                            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
-                              <div>
-                                <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1 md:mb-1.5">Contribution</p>
-                                <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
-                                  {parseFloat(contributionEth).toFixed(3)} ETH
-                                </p>
-                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-                                  ${contributionUSD.toFixed(0)}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1 md:mb-1.5">ULT APY</p>
-                                <p className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                  {pool.fee ? pool.fee.toString() + "%" : "0%"}
-                                </p>
-                                <p className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400">Active</p>
-                              </div>
+
+                            {/* Contactless Icon */}
+                            <div className="text-white/60">
+                              <ContactlessIcon />
                             </div>
                           </div>
-                          
-                          <div className="mb-3 sm:mb-4 md:mb-5">
-                            <div className="flex justify-between items-center mb-2 sm:mb-3">
-                              <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                                Pool Progress
-                              </span>
-                              <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white bg-gray-100/60 dark:bg-gray-700/60 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+
+                          {/* Card Number (Pool ID styled) */}
+                          <div className="mb-6">
+                            <div className="font-mono text-xl sm:text-2xl tracking-[0.3em] font-medium mb-2">
+                              {"•••• •••• •••• " + poolIdStr.padStart(4, '0')}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {pool.joined && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-sm border border-white/30">
+                                  <Star size={8} className="mr-1" />
+                                  MEMBER
+                                </span>
+                              )}
+                              {isCreator && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400/30 backdrop-blur-sm border border-yellow-300/50">
+                                  <Award size={8} className="mr-1" />
+                                  CREATOR
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Card Holder (Creator Address styled) */}
+                          <div className="mb-4">
+                            <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">Card Holder</div>
+                            <div className="font-medium text-sm tracking-wide">
+                              {pool.creator.slice(0, 10)}...{pool.creator.slice(-8)}
+                            </div>
+                          </div>
+
+                          {/* Card Details Row */}
+                          <div className="flex justify-between items-end mb-4">
+                            <div>
+                              <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">Amount</div>
+                              <div className="font-bold text-lg sm:text-xl">
+                                {parseFloat(contributionEth).toFixed(3)} ETH
+                              </div>
+                              <div className="text-xs opacity-80">
+                                ${contributionUSD.toFixed(0)} USD
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">APY</div>
+                              <div className="font-bold text-lg sm:text-xl text-yellow-300">
+                                {pool.fee ? pool.fee.toString() + "%" : "0%"}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs opacity-80 uppercase tracking-wide">Capacity</span>
+                              <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
                                 {totalMembersStr}/{maxMembersStr}
                               </span>
                             </div>
                             <div className="relative">
-                              <div className="w-full bg-gradient-to-r from-gray-200/60 to-gray-300/60 dark:from-gray-700/60 dark:to-gray-600/60 rounded-full h-2 sm:h-2.5 md:h-3 overflow-hidden backdrop-blur-sm shadow-inner">
+                              <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden backdrop-blur-sm">
                                 <motion.div 
-                                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full shadow-md relative"
+                                  className="h-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 rounded-full relative shadow-lg"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${completionPercentage}%` }}
                                   transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
                                 >
-                                  <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent rounded-full" />
-                                  <div className="absolute right-0 top-0 h-full w-0.5 sm:w-1 bg-white/80 rounded-full" />
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
                                 </motion.div>
                               </div>
-                              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 sm:mt-2 font-medium">
+                              <p className="text-[10px] opacity-70 mt-1">
                                 {completionPercentage.toFixed(1)}% filled
                               </p>
                             </div>
                           </div>
 
+                          {/* ULT Balance (for members) */}
                           {account && pool.joined && !isCreator && (
-                            <div className="mb-3 sm:mb-4 md:mb-5 p-2.5 sm:p-3 md:p-4 bg-gradient-to-r from-green-50/60 to-emerald-50/60 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg sm:rounded-xl border border-green-200/40 dark:border-green-700/40 backdrop-blur-sm shadow-sm">
+                            <div className="mb-4 p-3 bg-black/20 backdrop-blur-sm rounded-xl border border-white/20">
                               <UltBalanceAndClaim poolId={poolIdStr} />
                             </div>
                           )}
 
+                          {/* Action Button */}
                           <motion.button
                             onClick={(e) => handlePoolAction(e, pool, action)}
                             whileTap={!action.disabled ? { scale: 0.98 } : {}}
-                            className={getButtonClasses(action.variant, action.disabled)}
+                            className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+                              action.disabled
+                                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                                : 'bg-white/25 hover:bg-white/35 backdrop-blur-sm border border-white/30 hover:border-white/50 text-white shadow-lg hover:shadow-xl'
+                            }`}
                             disabled={action.disabled}
                           >
                             <span className="relative z-10">{action.text}</span>
-                            {!action.disabled && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                            )}
                           </motion.button>
                         </div>
+
+                        {/* Corner Accent */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full" />
                       </motion.div>
                     </Link>
                   </motion.div>
@@ -1477,7 +1635,7 @@ const Dashboard = () => {
         </AnimatePresence>
       </motion.section>
 
-      {/* Activity Feed - MOBILE OPTIMIZED */}
+      {/* Activity Feed - Keep original styling */}
       <motion.section
         variants={containerVariants}
         initial="hidden"
