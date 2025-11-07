@@ -993,9 +993,9 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section - Premium Bank Card Design */}
+      {/* Hero Section - Minimalist Bank Card Design */}
       <motion.section 
-        className="relative rounded-2xl sm:rounded-3xl overflow-hidden mb-6 sm:mb-8 md:mb-12 perspective-1000"
+        className="relative rounded-2xl overflow-hidden mb-6 sm:mb-8 perspective-1000"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
@@ -1003,8 +1003,6 @@ const Dashboard = () => {
         <motion.div
           whileHover={{ 
             scale: 1.01,
-            rotateY: 1,
-            rotateX: -1,
             transition: { duration: 0.3 }
           }}
           className="relative transform-gpu"
@@ -1031,28 +1029,29 @@ const Dashboard = () => {
             }} />
           </div>
 
-          {/* Ambient Glow Effects */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-yellow-300/30 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-56 h-56 sm:w-80 sm:h-80 bg-pink-300/30 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-96 sm:h-96 bg-purple-300/20 rounded-full blur-3xl" />
+          {/* Logo Watermark Background */}
+          <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 pointer-events-none">
+            <img 
+              src="/images/UL.png"
+              alt="UnityLedger"
+              className="h-32 w-32 sm:h-40 sm:w-40 filter brightness-0 invert"
+            />
           </div>
           
-          <div className="relative z-10 py-8 sm:py-10 md:py-12 px-6 sm:px-8 md:px-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center">
+          <div className="relative z-10 py-6 sm:py-8 px-6 sm:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center max-w-5xl mx-auto">
               {/* Left Side - Card Information */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-5">
                 {/* Card Brand & Chip */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-3">
                     {/* Bank/Brand Name */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="flex items-center gap-3"
                     >
-                      <div className="font-black text-2xl sm:text-3xl text-white tracking-wider drop-shadow-lg">
+                      <div className="font-black text-xl sm:text-2xl text-white tracking-wider">
                         UNITYLEDGER
                       </div>
                     </motion.div>
@@ -1083,62 +1082,47 @@ const Dashboard = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-2 border border-white/30"
+                  className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/30"
                 >
-                  <Sparkles size={16} className="text-yellow-300" />
-                  <span className="text-white text-sm font-semibold tracking-wide">DECENTRALIZED SAVINGS</span>
+                  <Sparkles size={14} className="text-yellow-300" />
+                  <span className="text-white text-xs font-semibold tracking-wide">DECENTRALIZED SAVINGS</span>
                 </motion.div>
 
-                {/* Card Number (Stylized) */}
+                {/* Card Number */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="space-y-2"
+                  className="space-y-1"
                 >
-                  <div className="font-mono text-xl sm:text-2xl md:text-3xl tracking-[0.3em] font-medium text-white drop-shadow-lg">
+                  <div className="font-mono text-lg sm:text-xl tracking-[0.25em] font-medium text-white">
                     {"•••• •••• •••• " + (account ? account.slice(-4) : "****")}
                   </div>
-                  <div className="text-xs sm:text-sm text-white/60 font-medium tracking-wider">
+                  <div className="text-[10px] sm:text-xs text-white/60 font-medium tracking-wider">
                     MEMBER CARD
                   </div>
                 </motion.div>
 
-                {/* Card Holder Info */}
+                {/* Valid Thru / Network */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="space-y-1"
-                >
-                  <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium">
-                    Card Holder
-                  </div>
-                  <div className="text-base sm:text-lg font-semibold text-white tracking-wide">
-                    {account ? `${account.slice(0, 10)}...${account.slice(-8)}` : "Connect Wallet"}
-                  </div>
-                </motion.div>
-
-                {/* Valid Thru / Expiry (Decorative) */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-center gap-8"
+                  className="flex items-center gap-6"
                 >
                   <div>
-                    <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium mb-1">
+                    <div className="text-[9px] sm:text-[10px] text-white/60 uppercase tracking-widest font-medium mb-0.5">
                       Valid Thru
                     </div>
-                    <div className="text-sm sm:text-base font-semibold text-white tracking-wider">
+                    <div className="text-xs sm:text-sm font-semibold text-white tracking-wider">
                       ∞
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest font-medium mb-1">
+                    <div className="text-[9px] sm:text-[10px] text-white/60 uppercase tracking-widest font-medium mb-0.5">
                       Network
                     </div>
-                    <div className="text-sm sm:text-base font-semibold text-white tracking-wider">
+                    <div className="text-xs sm:text-sm font-semibold text-white tracking-wider">
                       WEB3
                     </div>
                   </div>
@@ -1148,76 +1132,47 @@ const Dashboard = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="flex flex-wrap gap-3 pt-2"
+                  transition={{ delay: 0.6 }}
+                  className="flex flex-wrap gap-2 pt-1"
                 >
                   <Link
                     to="/join-create"
-                    className="group bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/40 hover:border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+                    className="group bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/40 hover:border-white/60 px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
                   >
-                    <Plus size={18} />
+                    <Plus size={16} />
                     <span>Create Pool</span>
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
                     to="/faucet"
-                    className="group bg-yellow-400/25 backdrop-blur-md hover:bg-yellow-400/35 text-white border border-yellow-300/40 hover:border-yellow-300/60 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+                    className="group bg-yellow-400/25 backdrop-blur-md hover:bg-yellow-400/35 text-white border border-yellow-300/40 hover:border-yellow-300/60 px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
                   >
-                    <Gift size={18} />
+                    <Gift size={16} />
                     <span>Get ULT</span>
                   </Link>
                 </motion.div>
               </div>
 
-              {/* Right Side - Welcome Message & Balance */}
-              <div className="space-y-6 lg:pl-8">
+              {/* Right Side - Welcome & Balance */}
+              <div className="space-y-4 lg:pl-6">
                 {/* Welcome Message */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="space-y-3"
+                  className="space-y-2"
                 >
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight drop-shadow-2xl">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
                     Welcome to{" "}
                     <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-pink-300">
                       UnityLedger
                     </span>
                   </h1>
                   
-                  <p className="text-base sm:text-lg text-white/90 leading-relaxed">
-                    Build wealth together with{" "}
+                  <p className="text-sm sm:text-base text-white/90">
+                    Build wealth with{" "}
                     <span className="font-bold text-yellow-200">automated payouts</span> and{" "}
                     <span className="font-bold text-pink-200">ULT rewards</span>
                   </p>
-                </motion.div>
-
-                {/* Logo with Glow */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex items-center gap-4"
-                >
-                  <div className="relative">
-                    <img 
-                      src="/images/UL.png"
-                      alt="UnityLedger Logo"
-                      className="h-16 w-16 sm:h-20 sm:w-20 filter drop-shadow-2xl"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/40 to-pink-400/40 rounded-full blur-2xl animate-pulse" />
-                  </div>
-
-                  {/* Premium Card Badge */}
-                  <div className="bg-gradient-to-r from-yellow-400/20 to-amber-400/20 backdrop-blur-md px-4 py-2 rounded-xl border border-yellow-300/30">
-                    <div className="flex items-center gap-2">
-                      <Award size={20} className="text-yellow-300" />
-                      <div>
-                        <div className="text-[10px] text-yellow-200/80 uppercase tracking-wider font-medium">Premium</div>
-                        <div className="text-sm font-bold text-white">Member</div>
-                      </div>
-                    </div>
-                  </div>
                 </motion.div>
 
                 {/* ULT Balance Card */}
@@ -1225,62 +1180,33 @@ const Dashboard = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 shadow-2xl"
+                    transition={{ delay: 0.5 }}
+                    className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/30 shadow-xl"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-white/70 mb-1 uppercase tracking-wider font-medium">Available Balance</p>
+                        <p className="text-[10px] text-white/70 mb-1 uppercase tracking-wider font-medium">Available Balance</p>
                         <div className="flex items-baseline gap-2">
-                          <Coins size={24} className="text-yellow-300" />
-                          <p className="text-3xl font-black text-white">{parseFloat(ultBalance).toFixed(3)}</p>
-                          <span className="text-lg font-bold text-white/80">ULT</span>
+                          <Coins size={20} className="text-yellow-300" />
+                          <p className="text-2xl font-black text-white">{parseFloat(ultBalance).toFixed(3)}</p>
+                          <span className="text-sm font-bold text-white/80">ULT</span>
                         </div>
-                        <p className="text-xs text-white/60 mt-1">
+                        <p className="text-[10px] text-white/60 mt-0.5">
                           ≈ ${(parseFloat(ultBalance) * parseFloat(ultPrice) * 1600).toFixed(2)} USD
                         </p>
                       </div>
-                      <div className="text-white/40">
-                        <BarChart3 size={48} />
+                      <div className="text-white/30">
+                        <BarChart3 size={36} />
                       </div>
                     </div>
                   </motion.div>
                 )}
-
-                {/* Features List */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  {[
-                    { icon: <Shield size={16} />, text: "Secure" },
-                    { icon: <Zap size={16} />, text: "Instant" },
-                    { icon: <Users size={16} />, text: "Community" },
-                    { icon: <TrendingUp size={16} />, text: "Growth" }
-                  ].map((feature, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20"
-                    >
-                      <div className="text-white/80">{feature.icon}</div>
-                      <span className="text-xs font-semibold text-white">{feature.text}</span>
-                    </div>
-                  ))}
-                </motion.div>
               </div>
             </div>
           </div>
 
-          {/* Corner Accent Decoration */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-white/10 to-transparent rounded-tr-full pointer-events-none" />
-
-          {/* Card Logo/Watermark */}
-          <div className="absolute bottom-6 right-6 opacity-10">
-            <CreditCard size={80} className="text-white" />
-          </div>
+          {/* Corner Accent */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full pointer-events-none" />
         </motion.div>
       </motion.section>
 
@@ -1455,7 +1381,7 @@ const Dashboard = () => {
             </motion.div>
           ) : (
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"
               key="pools"
               variants={containerVariants}
               initial="hidden"
@@ -1482,12 +1408,10 @@ const Dashboard = () => {
                       <motion.div
                         whileHover={{ 
                           scale: 1.02,
-                          rotateY: 2,
-                          rotateX: -2,
                           transition: { duration: 0.3 }
                         }}
                         whileTap={{ scale: 0.98 }}
-                        className={`relative bg-gradient-to-br ${theme.gradient} rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 shadow-2xl hover:shadow-3xl ${theme.glow} transition-all duration-500 overflow-hidden transform-gpu`}
+                        className={`relative bg-gradient-to-br ${theme.gradient} rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-xl hover:shadow-2xl ${theme.glow} transition-all duration-500 overflow-hidden transform-gpu`}
                         style={{
                           transformStyle: 'preserve-3d',
                         }}
@@ -1500,94 +1424,83 @@ const Dashboard = () => {
                         {/* Glossy Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20 pointer-events-none" />
 
-                        {/* Card Pattern/Texture */}
-                        <div className="absolute inset-0 opacity-10">
-                          <div className="absolute inset-0" style={{
-                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)'
-                          }} />
-                        </div>
-
                         <div className="relative z-10 text-white h-full flex flex-col">
                           {/* Card Header */}
-                          <div className="flex justify-between items-start mb-6">
+                          <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
-                              {/* Brand/Logo */}
-                              <div className="flex items-center gap-2 mb-4">
-                                <div className="font-black text-lg sm:text-xl tracking-wider opacity-90">
+                              {/* Brand */}
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="font-black text-sm tracking-wider opacity-90">
                                   {theme.brand}
                                 </div>
+                                {pool.joined && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 backdrop-blur-sm border border-white/30">
+                                    <Star size={8} className="mr-0.5" />
+                                    MEMBER
+                                  </span>
+                                )}
+                                {isCreator && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-yellow-400/30 backdrop-blur-sm border border-yellow-300/50">
+                                    <Award size={8} className="mr-0.5" />
+                                    CREATOR
+                                  </span>
+                                )}
                               </div>
                               
                               {/* Chip */}
-                              <CardChip />
+                              <div className="w-9 h-7">
+                                <CardChip />
+                              </div>
                             </div>
 
                             {/* Contactless Icon */}
                             <div className="text-white/60">
-                              <ContactlessIcon />
+                              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
                             </div>
                           </div>
 
-                          {/* Card Number (Pool ID styled) */}
-                          <div className="mb-6">
-                            <div className="font-mono text-xl sm:text-2xl tracking-[0.3em] font-medium mb-2">
-                              {"•••• •••• •••• " + poolIdStr.padStart(4, '0')}
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {pool.joined && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-sm border border-white/30">
-                                  <Star size={8} className="mr-1" />
-                                  MEMBER
-                                </span>
-                              )}
-                              {isCreator && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400/30 backdrop-blur-sm border border-yellow-300/50">
-                                  <Award size={8} className="mr-1" />
-                                  CREATOR
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Card Holder (Creator Address styled) */}
+                          {/* Card Number (Pool ID) */}
                           <div className="mb-4">
-                            <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">Card Holder</div>
-                            <div className="font-medium text-sm tracking-wide">
-                              {pool.creator.slice(0, 10)}...{pool.creator.slice(-8)}
+                            <div className="font-mono text-base tracking-[0.25em] font-medium mb-1">
+                              {"•••• •••• " + poolIdStr.padStart(4, '0')}
                             </div>
+                            <div className="text-[9px] opacity-70 tracking-wider">SAVINGS POOL</div>
                           </div>
 
-                          {/* Card Details Row */}
-                          <div className="flex justify-between items-end mb-4">
+                          {/* Card Details */}
+                          <div className="flex justify-between items-end mb-3">
                             <div>
-                              <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">Amount</div>
-                              <div className="font-bold text-lg sm:text-xl">
+                              <div className="text-[9px] opacity-70 mb-0.5 uppercase tracking-wider">Amount</div>
+                              <div className="font-bold text-base">
                                 {parseFloat(contributionEth).toFixed(3)} ETH
                               </div>
-                              <div className="text-xs opacity-80">
-                                ${contributionUSD.toFixed(0)} USD
+                              <div className="text-[10px] opacity-80">
+                                ${contributionUSD.toFixed(0)}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-[10px] opacity-70 mb-1 uppercase tracking-wider">APY</div>
-                              <div className="font-bold text-lg sm:text-xl text-yellow-300">
+                              <div className="text-[9px] opacity-70 mb-0.5 uppercase tracking-wider">APY</div>
+                              <div className="font-bold text-base text-yellow-300">
                                 {pool.fee ? pool.fee.toString() + "%" : "0%"}
                               </div>
                             </div>
                           </div>
 
                           {/* Progress Bar */}
-                          <div className="mb-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs opacity-80 uppercase tracking-wide">Capacity</span>
-                              <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
+                          <div className="mb-3">
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className="text-[9px] opacity-80 uppercase tracking-wide">Capacity</span>
+                              <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded">
                                 {totalMembersStr}/{maxMembersStr}
                               </span>
                             </div>
                             <div className="relative">
-                              <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden backdrop-blur-sm">
+                              <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden backdrop-blur-sm">
                                 <motion.div 
-                                  className="h-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 rounded-full relative shadow-lg"
+                                  className="h-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 rounded-full relative shadow-md"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${completionPercentage}%` }}
                                   transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
@@ -1595,15 +1508,15 @@ const Dashboard = () => {
                                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
                                 </motion.div>
                               </div>
-                              <p className="text-[10px] opacity-70 mt-1">
-                                {completionPercentage.toFixed(1)}% filled
+                              <p className="text-[9px] opacity-70 mt-1">
+                                {completionPercentage.toFixed(0)}% filled
                               </p>
                             </div>
                           </div>
 
                           {/* ULT Balance (for members) */}
                           {account && pool.joined && !isCreator && (
-                            <div className="mb-4 p-3 bg-black/20 backdrop-blur-sm rounded-xl border border-white/20">
+                            <div className="mb-3 p-2.5 bg-black/20 backdrop-blur-sm rounded-lg border border-white/20">
                               <UltBalanceAndClaim poolId={poolIdStr} />
                             </div>
                           )}
@@ -1612,7 +1525,7 @@ const Dashboard = () => {
                           <motion.button
                             onClick={(e) => handlePoolAction(e, pool, action)}
                             whileTap={!action.disabled ? { scale: 0.98 } : {}}
-                            className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+                            className={`w-full py-2.5 px-4 rounded-lg font-bold text-xs transition-all duration-200 ${
                               action.disabled
                                 ? 'bg-white/10 text-white/40 cursor-not-allowed'
                                 : 'bg-white/25 hover:bg-white/35 backdrop-blur-sm border border-white/30 hover:border-white/50 text-white shadow-lg hover:shadow-xl'
@@ -1624,7 +1537,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Corner Accent */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full" />
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full" />
                       </motion.div>
                     </Link>
                   </motion.div>
