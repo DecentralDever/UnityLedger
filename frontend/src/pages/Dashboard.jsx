@@ -152,6 +152,7 @@ const Dashboard = () => {
   const [poolCount, setPoolCount] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pools, setPools] = useState([]);
+  const [sortBy, setSortBy] = useState('newest'); // Sorting state
   const [error, setError] = useState(null);
   const [activities, setActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
@@ -164,6 +165,59 @@ const Dashboard = () => {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  // Sort pools based on selected sort option
+  const sortedPools = useMemo(() => {
+    if (!pools || pools.length === 0) return [];
+    
+    const poolsCopy = [...pools];
+    
+    switch (sortBy) {
+      case 'newest':
+        return poolsCopy.sort((a, b) => Number(b.id) - Number(a.id));
+      
+      case 'oldest':
+        return poolsCopy.sort((a, b) => Number(a.id) - Number(b.id));
+      
+      case 'amount-high':
+        return poolsCopy.sort((a, b) => {
+          const aAmount = safeBigInt(a.contributionAmount);
+          const bAmount = safeBigInt(b.contributionAmount);
+          return Number(bAmount - aAmount);
+        });
+      
+      case 'amount-low':
+        return poolsCopy.sort((a, b) => {
+          const aAmount = safeBigInt(a.contributionAmount);
+          const bAmount = safeBigInt(b.contributionAmount);
+          return Number(aAmount - bAmount);
+        });
+      
+      case 'apy-high':
+        return poolsCopy.sort((a, b) => {
+          const aFee = Number(a.fee || 0);
+          const bFee = Number(b.fee || 0);
+          return bFee - aFee;
+        });
+      
+      case 'capacity-high':
+        return poolsCopy.sort((a, b) => {
+          const aPercentage = (Number(a.totalMembers) / Number(a.maxMembers)) * 100;
+          const bPercentage = (Number(b.totalMembers) / Number(b.maxMembers)) * 100;
+          return bPercentage - aPercentage;
+        });
+      
+      case 'capacity-low':
+        return poolsCopy.sort((a, b) => {
+          const aPercentage = (Number(a.totalMembers) / Number(a.maxMembers)) * 100;
+          const bPercentage = (Number(b.totalMembers) / Number(b.maxMembers)) * 100;
+          return aPercentage - bPercentage;
+        });
+      
+      default:
+        return poolsCopy;
+    }
+  }, [pools, sortBy]);
 
   const SUPPORTED_NETWORKS = useMemo(() => ({
     50312: {
@@ -1297,35 +1351,26 @@ const Dashboard = () => {
               )}
             </h2>
             <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Premium savings pools with bank-grade security
+              Build wealth together with automated savings
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 disabled:opacity-50"
+          
+          {/* Sorting Dropdown */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer hover:border-indigo-400"
             >
-              <motion.div
-                animate={refreshing ? { rotate: 360 } : {}}
-                transition={refreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}
-              >
-                <RefreshCw size={14} className="sm:w-4 sm:h-4" />
-              </motion.div>
-              <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </motion.button>
-            <motion.div whileTap={{ scale: 0.95 }}>
-              <Link
-                to="/join-create"
-                className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap"
-              >
-                <Plus size={14} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="hidden xs:inline">Create</span>
-                <span className="xs:hidden">+</span>
-                <ArrowRight size={12} className="sm:w-4 sm:h-4 hidden sm:inline" />
-              </Link>
-            </motion.div>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="amount-high">Amount: High to Low</option>
+              <option value="amount-low">Amount: Low to High</option>
+              <option value="apy-high">APY: High to Low</option>
+              <option value="capacity-high">Most Filled</option>
+              <option value="capacity-low">Least Filled</option>
+            </select>
           </div>
         </div>
 
@@ -1349,7 +1394,7 @@ const Dashboard = () => {
                 </div>
               ))}
             </motion.div>
-          ) : pools.length === 0 ? (
+          ) : sortedPools.length === 0 ? (
             <motion.div
               className="text-center py-12 sm:py-16 md:py-20"
               key="empty"
@@ -1387,7 +1432,7 @@ const Dashboard = () => {
               initial="hidden"
               animate="visible"
             >
-              {pools.slice(0, 6).map((pool, idx) => {
+              {sortedPools.slice(0, 6).map((pool, idx) => {
                 const poolIdStr = pool.id.toString();
                 const totalMembersStr = pool.totalMembers.toString();
                 const maxMembersStr = pool.maxMembers.toString();
