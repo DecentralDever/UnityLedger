@@ -11,6 +11,9 @@
     "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@blend-capital/blend-sdk": "^2.2.0",
+    "@stellar/freighter-api": "^4.1.0",
+    "@stellar/stellar-sdk": "^13.3.0",
     "@tailwindcss/vite": "^4.1.2",
     "ethers": "^6.13.5",
     "framer-motion": "^12.6.3",

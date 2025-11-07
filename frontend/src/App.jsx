@@ -1,7 +1,7 @@
 import './index.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout.js";
-import Dashboard from "./pages/Dashboard.js";
+import Dashboard from "./pages/Dashboard.jsx";
 import JoinCreatePool from "./pages/JoinCreatePool.jsx";
 import ViewPool from "./pages/ViewPool.js";
 import { ToastContainer } from "react-toastify";
