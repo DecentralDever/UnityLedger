@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ConnectButton from "./ConnectButton";
-import { Menu, X, ChevronDown, ExternalLink, Moon, Sun } from "lucide-react";
+import { Menu, X, ChevronDown, Moon, Sun } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeProvider";
 
@@ -126,7 +126,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </nav>
 
-            {/* Right side: Wallet connect, theme toggle, external links */}
+            {/* Right side: Wallet connect, theme toggle, docs link */}
             <div className="flex items-center space-x-4">
               <motion.button
                 onClick={toggleTheme}
@@ -137,15 +137,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </motion.button>
 
-              <a
-                href="https://docs.unityledger.com"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/docs"
                 className="hidden sm:flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors"
               >
                 Docs
-                <ExternalLink size={14} className="ml-1" />
-              </a>
+              </Link>
 
               <ConnectButton />
 
@@ -202,16 +199,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     {item.label}
                   </Link>
                 ))}
-                <a
-                  href="https://docs.unityledger.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/docs"
                   className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Docs
-                  <ExternalLink size={14} className="ml-1" />
-                </a>
+                </Link>
               </div>
             </motion.div>
           )}

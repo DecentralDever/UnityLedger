@@ -16,6 +16,7 @@ import MemberDashboard from "./pages/MemberDashboard.jsx";
 //import SwapInterface from "./pages/SwapInterface.jsx";
 import ULTFaucet from "./pages/ULTFaucet.jsx";
 import ULTStaking from "./pages/ULTStaking.jsx";
+import Documentation from "./pages/Documentation.jsx";
 
 const App = () => {
     // Handle network changes
@@ -40,6 +41,7 @@ const App = () => {
                             {/* <Route path="/swap" element={<SwapInterface />} /> */}
                             <Route path="/faucet" element={<ULTFaucet />} />
                             <Route path="/stake" element={<ULTStaking />} />
+                            <Route path="/docs" element={<Documentation />} />
                             <Route path="*" element={<div>Page Not Found</div>} />
                         </Routes>
                     </Layout>

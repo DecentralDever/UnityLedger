@@ -78,7 +78,7 @@ const WalletConnectionModal = ({ isOpen, onConnect, onClose, error, isConnecting
       icon: "⚡",
       color: "from-purple-500 to-pink-500",
       features: ["Sub-second finality", "High throughput", "Low fees"],
-      chainId: "0xc488",
+      chainId: "0xC458",
       rpcUrl: "https://dream-rpc.somnia.network",
       nativeCurrency: { name: "Somnia Test Token", symbol: "STT", decimals: 18 },
       blockExplorerUrls: ["https://shannon-explorer.somnia.network"],
@@ -92,7 +92,7 @@ const WalletConnectionModal = ({ isOpen, onConnect, onClose, error, isConnecting
       icon: "🔷",
       color: "from-blue-500 to-cyan-500",
       features: ["Low gas fees", "Ethereum compatible", "Fast transactions"],
-      chainId: "0x106a",
+      chainId: "0x106A",
       rpcUrl: "https://rpc.sepolia-api.lisk.com",
       nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
       blockExplorerUrls: ["https://sepolia-blockscout.lisk.com"],
@@ -582,7 +582,7 @@ const Dashboard = () => {
     50312: {
       name: "Somnia",
       rpcUrl: "https://dream-rpc.somnia.network",
-      chainId: "0xc488",
+      chainId: "0xC458",
       nativeCurrency: { name: "Somnia Test Token", symbol: "STT", decimals: 18 },
       blockExplorerUrls: ["https://shannon-explorer.somnia.network"],
       ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
@@ -590,7 +590,7 @@ const Dashboard = () => {
     4202: {
       name: "Lisk Sepolia",
       rpcUrl: "https://rpc.sepolia-api.lisk.com",
-      chainId: "0x106a",
+      chainId: "0x106A",
       nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
       blockExplorerUrls: ["https://sepolia-blockscout.lisk.com"],
       ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
@@ -1374,7 +1374,8 @@ const Dashboard = () => {
                   { icon: <Search size={18} />, title: 'Find Pools', desc: 'Browse available pools', to: '/pools' },
                   { icon: <BarChart3 size={18} />, title: 'Your Dashboard', desc: 'Manage your pools', to: '/memberdashboard' },
                   { icon: <TrendingUp size={18} />, title: 'Stake ULT', desc: 'Earn rewards by staking', to: '/stake' },
-                  { icon: <Gift size={18} />, title: 'Get ULT', desc: 'Claim from faucet', to: '/faucet' }
+                  { icon: <Gift size={18} />, title: 'Get ULT', desc: 'Claim from faucet', to: '/faucet' },
+                  { icon: <BookOpen size={18} />, title: 'Documentation', desc: 'Learn how to use UnityLedger', to: '/docs' }
                 ].map((action, index) => (
                   <Link
                     key={action.title}
