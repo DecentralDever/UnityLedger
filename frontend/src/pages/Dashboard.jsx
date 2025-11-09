@@ -92,7 +92,7 @@ const WalletConnectionModal = ({ isOpen, onConnect, onClose, error, isConnecting
       icon: "🔷",
       color: "from-blue-500 to-cyan-500",
       features: ["Low gas fees", "Ethereum compatible", "Fast transactions"],
-      chainId: "0x106A",
+      chainId: "0x106a",
       rpcUrl: "https://rpc.sepolia-api.lisk.com",
       nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
       blockExplorerUrls: ["https://sepolia-blockscout.lisk.com"],
@@ -590,7 +590,7 @@ const Dashboard = () => {
     4202: {
       name: "Lisk Sepolia",
       rpcUrl: "https://rpc.sepolia-api.lisk.com",
-      chainId: "0x106A",
+      chainId: "0x106a",
       nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
       blockExplorerUrls: ["https://sepolia-blockscout.lisk.com"],
       ultToken: "0x9C6adb7DC4b27fbFe381D726606248Ad258F4228"
