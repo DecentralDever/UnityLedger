@@ -6,7 +6,9 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "strict": true
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false
   },
   "include": ["src", "vite-env.d.ts"]
 }
