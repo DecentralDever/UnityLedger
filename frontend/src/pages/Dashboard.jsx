@@ -582,7 +582,7 @@ const Dashboard = () => {
     50312: {
       name: "Somnia",
       rpcUrl: "https://dream-rpc.somnia.network",
-      chainId: "0xC458",
+      chainId: "0xc488",
       nativeCurrency: { name: "Somnia Test Token", symbol: "STT", decimals: 18 },
       blockExplorerUrls: ["https://shannon-explorer.somnia.network"],
       ultToken: "0x2Da2331B2a0E669785e8EAAadc19e63e20E19E5f"
