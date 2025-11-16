@@ -78,7 +78,7 @@ const WalletConnectionModal = ({ isOpen, onConnect, onClose, error, isConnecting
       icon: "⚡",
       color: "from-purple-500 to-pink-500",
       features: ["Sub-second finality", "High throughput", "Low fees"],
-      chainId: "0xC458",
+      chainId: "0xC488",
       rpcUrl: "https://dream-rpc.somnia.network",
       nativeCurrency: { name: "Somnia Test Token", symbol: "STT", decimals: 18 },
       blockExplorerUrls: ["https://shannon-explorer.somnia.network"],
